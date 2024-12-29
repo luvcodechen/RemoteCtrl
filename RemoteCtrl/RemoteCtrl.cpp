@@ -124,6 +124,62 @@ int MakeDirectoryInfo()
 	return 0;
 }
 
+int RunFile() //打开文件
+{
+	std::string strPath;
+	if (CServerSocket::GetInstance()->GetFilePath(strPath) == false)
+	{
+		OutputDebugString(_T("当前的命令，不是获取文件列表，命令解析错误"));
+		return -1;
+	}
+	ShellExecuteA(NULL, NULL, strPath.c_str(), NULL, NULL, SW_SHOWNORMAL); //打开文件
+	CPacket packet(3, NULL, 0);
+	CServerSocket::GetInstance()->Send(packet);
+	return 0;
+}
+#pragma warning(disable:4996)//忽略fopen函数的警告
+int DownloadFile() //下载文件
+{
+	std::string strPath;
+	CServerSocket::GetInstance()->GetFilePath(strPath);
+	long long data = 0;
+	FILE* pFile = nullptr; //文件指针
+	errno_t err = fopen_s(&pFile, strPath.c_str(), "rb"); //打开文件
+	if (err != 0) //打开文件失败
+	{
+		CPacket packet(4, (BYTE*)&data, 8);
+		CServerSocket::GetInstance()->Send(packet);
+		return -1;
+	}
+	// pFile = fopen(strPath.c_str(), "rb");  上面的代码等价于这行代码，但是这行代码不安全，容易被攻击，可以采取措施忽略警告信息
+	// if (pFile == nullptr) //打开文件失败
+	// {
+	// 	CPacket packet(4, (BYTE*)&data, 8);
+	// 	CServerSocket::GetInstance()->Send(packet);
+	// 	return -1;
+	// }
+	if (pFile != nullptr)
+	{
+		fseek(pFile, 0, SEEK_END); //将文件指针移动到文件末尾
+		data = _ftelli64(pFile); //获取文件大小
+		CPacket head(4, (BYTE*)&data, 8);
+		fseek(pFile, 0, SEEK_SET); //将文件指针移动到文件开头
+		char buffer[1024] = "";
+		size_t rlen = 0;
+		do
+		{
+			rlen = fread(buffer, 1, sizeof(buffer), pFile);
+			CPacket packet(4, (BYTE*)buffer, rlen);
+			CServerSocket::GetInstance()->Send(packet);
+		}
+		while (rlen >= 1024);
+		fclose(pFile);
+	}
+	CPacket packet(4, NULL, 0);
+	CServerSocket::GetInstance()->Send(packet);
+	return 0;
+}
+
 int main()
 {
 	int nRetCode = 0;
@@ -176,6 +232,12 @@ int main()
 				break;
 			case 2: // 查看指定目录下的文件
 				MakeDirectoryInfo();
+				break;
+			case 3: //打开文件
+				RunFile();
+				break;
+			case 4:
+				DownloadFile();
 				break;
 			}
 		}
