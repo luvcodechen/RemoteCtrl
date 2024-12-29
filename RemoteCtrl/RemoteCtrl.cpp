@@ -51,9 +51,76 @@ int MakeDriverInfo() //1==>A盘 2==>B盘 3==>C盘 .. 26==>Z盘
 			result += 'A' + i - 1;
 		}
 	}
-	CPacket packet(1, (BYTE*)result.c_str(), result.size());//打包数据
+	CPacket packet(1, (BYTE*)result.c_str(), result.size()); //打包数据
 	Dump((BYTE*)packet.Data(), packet.Size());
 	// CServerSocket::GetInstance()->Send(packet);
+	return 0;
+}
+
+#include <stdio.h>
+#include <io.h>
+#include <list>
+
+typedef struct file_info
+{
+	file_info()
+	{
+		IsInvalid = FALSE;
+		IsDirectory = -1;
+		HasFile = TRUE;
+		memset(szFIleName, 0, sizeof(szFIleName));
+	}
+
+	BOOL IsInvalid; //是否是无效的 TRUE 是 FALSE 不是
+	BOOL IsDirectory; //是否是目录 TRUE 是 FALSE 不是
+	BOOL HasFile; //是否有文件 TRUE 是 FALSE 不是
+	char szFIleName[256];
+} FILEINFO, *PFILEINFO;
+
+int MakeDirectoryInfo()
+{
+	std::string strPath;
+	// std::list<file_info> lstFileInfos;
+	if (CServerSocket::GetInstance()->GetFilePath(strPath) == false)
+	{
+		OutputDebugString(_T("当前的命令，不是获取文件列表，命令解析错误"));
+		return -1;
+	}
+	if (_chdir(strPath.c_str()) != 0)
+	{
+		FILEINFO finfo;
+		finfo.IsInvalid = TRUE;
+		finfo.IsDirectory = TRUE;
+		finfo.HasFile = FALSE;
+		memcpy(finfo.szFIleName, strPath.c_str(), strPath.size());
+		// lstFileInfos.push_back(finfo);
+		CPacket packet(2, (BYTE*)&finfo, sizeof(finfo));
+		CServerSocket::GetInstance()->Send(packet);
+		OutputDebugString(_T("没有权限访问目录！"));
+		return -2;
+	}
+	_finddata_t fdata; //文件信息
+	int hfind = 0;
+	if ((hfind = _findfirst("*", &fdata)) == -1)
+	{
+		OutputDebugString(_T("没有文件！"));
+		return -3;
+	}
+
+	do
+	{
+		FILEINFO finfo;
+		finfo.IsDirectory = (fdata.attrib & _A_SUBDIR) != 0; //是否是目录
+		memcpy(finfo.szFIleName, fdata.name, strlen(fdata.name)); //文件名
+		CPacket packet(2, (BYTE*)&finfo, sizeof(finfo));
+		CServerSocket::GetInstance()->Send(packet);
+		// lstFileInfos.push_back(finfo);
+	}
+	while (_findnext(hfind, &fdata) == 0);
+	FILEINFO finfo;
+	finfo.HasFile = FALSE;
+	CPacket packet(2, (BYTE*)&finfo, sizeof(finfo));
+	CServerSocket::GetInstance()->Send(packet);
 	return 0;
 }
 
@@ -106,6 +173,9 @@ int main()
 			{
 			case 1: //获取所有盘符
 				MakeDriverInfo();
+				break;
+			case 2: // 查看指定目录下的文件
+				MakeDirectoryInfo();
 				break;
 			}
 		}

@@ -231,6 +231,16 @@ public:
 		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
 	}
 
+	bool GetFilePath(std::string& strPath) const
+	{
+		if (m_packet.sCmd == 2)
+		{
+			strPath = m_packet.strData;
+			return true;
+		}
+		return false;
+	}
+
 private:
 	SOCKET m_socket; //套接字
 	SOCKET m_client; //客户端套接字
