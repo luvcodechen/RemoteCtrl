@@ -5,6 +5,7 @@
 #include "framework.h"
 #include "RemoteCtrl.h"
 #include "ServerSocket.h"
+#include <direct.h>
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -18,6 +19,43 @@
 CWinApp theApp;
 
 using namespace std;
+
+void Dump(BYTE* pData, size_t nSize) //将数据转换为16进制字符串
+{
+	std::string strOut;
+	for (size_t i = 0; i < nSize; i++) //将数据转换为16进制字符串
+	{
+		char buf[8] = "";
+		if (i > 0 && i % 16 == 0) //每16个字节换行
+		{
+			strOut += "\n";
+		}
+		snprintf(buf, sizeof(buf), "%02X", pData[i] & 0xFF); //将一个字节转换为16进制字符串
+		strOut += buf;
+	}
+	strOut += "\n";
+	OutputDebugStringA(strOut.c_str());
+}
+
+int MakeDriverInfo() //1==>A盘 2==>B盘 3==>C盘 .. 26==>Z盘
+{
+	std::string result;
+	for (int i = 1; i <= 26; i++)
+	{
+		if (_chdrive(i) == 0)
+		{
+			if (result.size() > 0)
+			{
+				result += ',';
+			}
+			result += 'A' + i - 1;
+		}
+	}
+	CPacket packet(1, (BYTE*)result.c_str(), result.size());//打包数据
+	Dump((BYTE*)packet.Data(), packet.Size());
+	// CServerSocket::GetInstance()->Send(packet);
+	return 0;
+}
 
 int main()
 {
@@ -41,27 +79,34 @@ int main()
 
 			//套接字初始化
 			// server;
-			CServerSocket* pserver = CServerSocket::GetInstance();
-			int count = 0;
-			if (pserver->InitSocket() == false)
+			// CServerSocket* pserver = CServerSocket::GetInstance();
+			// int count = 0;
+			// if (pserver->InitSocket() == false)
+			// {
+			// 	MessageBox(NULL, L"网络初始化失败", L"错误", MB_OK | MB_ICONERROR);
+			// 	exit(0);
+			// }
+			// while (CServerSocket::GetInstance() != nullptr)
+			// {
+			// 	if (pserver->AcceptSocket() == false)
+			// 	{
+			// 		if (count >= 3)
+			// 		{
+			// 			MessageBox(NULL, L"多次无法正常接入用户", L"接入用户失败", MB_OK | MB_ICONERROR);
+			// 			exit(0);
+			// 		}
+			// 		MessageBox(NULL, L"无法正常接入用户，自动重试", L"接入用户失败", MB_OK | MB_ICONERROR);
+			// 		count++;
+			// 	}
+			// 	int ret = pserver->DealCommand();
+			// 	//TODO:处理命令
+			// }
+			int nCmd = 1;
+			switch (nCmd)
 			{
-				MessageBox(NULL, L"网络初始化失败", L"错误", MB_OK | MB_ICONERROR);
-				exit(0);
-			}
-			while (CServerSocket::GetInstance() != nullptr)
-			{
-				if (pserver->AcceptSocket() == false)
-				{
-					if (count >= 3)
-					{
-						MessageBox(NULL, L"多次无法正常接入用户", L"接入用户失败", MB_OK | MB_ICONERROR);
-						exit(0);
-					}
-					MessageBox(NULL, L"无法正常接入用户，自动重试", L"接入用户失败", MB_OK | MB_ICONERROR);
-					count++;
-				}
-				int ret = pserver->DealCommand();
-				//TODO:处理命令
+			case 1: //获取所有盘符
+				MakeDriverInfo();
+				break;
 			}
 		}
 	}

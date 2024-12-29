@@ -2,7 +2,8 @@
 #include "pch.h"
 #include "framework.h"
 
-
+#pragma pack(push)
+#pragma pack(1)
 class CPacket
 {
 public:
@@ -10,7 +11,20 @@ public:
 	{
 	}
 
-	
+	CPacket(WORD nCmd, const BYTE* pDData, size_t nSize)
+	{
+		sHead = 0xFEFF;
+		nLength = nSize + 4; //包长
+		sCmd = nCmd; //命令
+		strData.resize(nSize); //数据
+		memcpy((void*)strData.c_str(), pDData, nSize); //数据
+		sSUM = 0;
+		for (size_t i = 0; i < strData.size(); i++)
+		{
+			sSUM += BYTE(strData[i]) & 0xFF;
+		}
+	}
+
 	CPacket(const CPacket& packet)
 	{
 		sHead = packet.sHead;
@@ -58,7 +72,7 @@ public:
 		}
 
 		sSUM = *(WORD*)(pData + i); //校验和
-		i+=2; //跳过校验和
+		i += 2; //跳过校验和
 		WORD sum = 0;
 		for (size_t j = 0; j < strData.size(); j++) //校验和
 		{
@@ -90,14 +104,36 @@ public:
 		return *this;
 	}
 
+	int Size() //包大小
+	{
+		return nLength + 6;
+	}
+
+	const char* Data() //包数据
+	{
+		strOut.resize(nLength + 6);
+		BYTE* pData = (BYTE*)strOut.c_str();
+		*(WORD*)pData = sHead;
+		pData += 2;
+		*(DWORD*)pData = nLength;
+		pData += 4;
+		*(WORD*)pData = sCmd;
+		pData += 2;
+		memcpy(pData, strData.c_str(), strData.size());
+		pData += strData.size();
+		*(WORD*)pData = sSUM;
+		return strOut.c_str();
+	}
+
 public:
 	WORD sHead; //包头 固定为FE FF
 	DWORD nLength; //包长(从命令到校验和)
 	WORD sCmd; //命令
 	std::string strData; //包数据
 	WORD sSUM; //校验和
+	std::string strOut; //整个包的数据
 };
-
+#pragma pack(pop)
 
 class CServerSocket
 {
@@ -144,7 +180,9 @@ public:
 			return FALSE;
 		return TRUE;
 	}
+
 #define BUFFER_SIZE 4096
+
 	int DealCommand()
 	{
 		if (m_client == -1)
@@ -157,18 +195,18 @@ public:
 		size_t index = 0;
 		while (1)
 		{
-			size_t len = recv(m_client, buffer+index, BUFFER_SIZE -index, 0); //接收数据
+			size_t len = recv(m_client, buffer + index, BUFFER_SIZE - index, 0); //接收数据
 			if (len <= 0)
 			{
 				return -1;
 			}
-			index+= len;
+			index += len;
 			len = index;
-			m_packet= CPacket((BYTE*)buffer, len); //解析数据
+			m_packet = CPacket((BYTE*)buffer, len); //解析数据
 			if (len > 0)
 			{
 				memmove(buffer, buffer + len, BUFFER_SIZE - len);
-				index-= len;
+				index -= len;
 				return m_packet.sCmd;
 			}
 		}
@@ -182,6 +220,15 @@ public:
 			return false;
 		}
 		return true;
+	}
+
+	bool Send(CPacket& pack)
+	{
+		if (m_client == -1)
+		{
+			return false;
+		}
+		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
 	}
 
 private:
