@@ -6,13 +6,14 @@
 #include "RemoteCtrl.h"
 #include "ServerSocket.h"
 #include <direct.h>
+#include <atlimage.h>
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-//#pragma comment( linker, "/subsystem:windows /entry:WinMainCRTStartup" )
-//#pragma comment( linker, "/subsystem:windows /entry:mainCRTStartup" )
-//#pragma comment( linker, "/subsystem:console /entry:mainCRTStartup" )
-//#pragma comment( linker, "/subsystem:console /entry:WinMainCRTStartup" )
+// #pragma comment( linker, "/subsystem:windows /entry:WinMainCRTStartup" )
+// #pragma comment( linker, "/subsystem:windows /entry:mainCRTStartup" )
+// #pragma comment( linker, "/subsystem:console /entry:mainCRTStartup" )
+// #pragma comment( linker, "/subsystem:console /entry:WinMainCRTStartup" )
 
 // 唯一的应用程序对象
 
@@ -201,7 +202,7 @@ int MouseEvent()
 			nFlags = 8;
 			break;
 		}
-		if (nFlags != 8)SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);//设置鼠标位置
+		if (nFlags != 8)SetCursorPos(mouse.ptXY.x, mouse.ptXY.y); //设置鼠标位置
 		switch (mouse.nAction)
 		{
 		case 0: //单机
@@ -279,6 +280,49 @@ int MouseEvent()
 	return 0;
 }
 
+int SendScreen()
+{
+	CImage screen; //屏幕截图 GDI
+	HDC hScreen = ::GetDC(NULL); //获取屏幕DC
+	int nBitPerPixel = GetDeviceCaps(hScreen,BITSPIXEL); //每个像素的位数
+	int nWidth = GetDeviceCaps(hScreen,HORZRES); //水平分辨率
+	int nHeight = GetDeviceCaps(hScreen,VERTRES); //垂直分辨率
+	screen.Create(nWidth, nHeight, nBitPerPixel); //创建一个与屏幕相同大小的图片
+	BitBlt(screen.GetDC(), 0, 0, 3840, 2100, hScreen, 0, 0, SRCCOPY); //将屏幕内容拷贝到图片
+	ReleaseDC(NULL, hScreen); //释放屏幕DC
+	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0); //分配内存
+	if (hMem == NULL)
+	{
+		OutputDebugString(_T("分配内存失败"));
+		return -1;
+	}
+	IStream* pStream = NULL;
+	HRESULT ret = CreateStreamOnHGlobal(hMem, TRUE, &pStream); //创建流
+	if (ret == S_OK)
+	{
+		screen.Save(pStream, Gdiplus::ImageFormatJPEG); //保存图片
+		LARGE_INTEGER bg = {0}; //大整数
+		pStream->Seek(bg, STREAM_SEEK_SET, nullptr); //将流指针移动到文件开头
+		PBYTE pData = (PBYTE)GlobalLock(hMem); //锁定内存
+		SIZE_T nSize = GlobalSize(hMem); //获取内存大小
+
+		CPacket pack(6, pData, nSize); //打包数据
+		CServerSocket::GetInstance()->Send(pack); //发送数据
+		GlobalUnlock(hMem); //解锁内存
+	}
+	pStream->Release(); //释放流
+	GlobalFree(hMem); //释放内存
+	// DWORD tick = GetTickCount64();
+	// screen.Save(_T("screen.jpg"), Gdiplus::ImageFormatJPEG); //保存图片
+	// TRACE(_T("保存图片耗时：%d\r\n"), GetTickCount64() - tick);
+	// tick = GetTickCount64();
+	// screen.Save(_T("screen.png"), Gdiplus::ImageFormatPNG); //保存图片
+	// TRACE(_T("保存图片耗时：%d\r\n"), GetTickCount64() - tick);
+	screen.ReleaseDC(); //释放图片DC
+
+	return 0;
+}
+
 int main()
 {
 	int nRetCode = 0;
@@ -323,7 +367,7 @@ int main()
 			// 	int ret = pserver->DealCommand();
 			// 	//TODO:处理命令
 			// }
-			int nCmd = 1;
+			int nCmd = 6;
 			switch (nCmd)
 			{
 			case 1: //获取所有盘符
@@ -340,6 +384,9 @@ int main()
 				break;
 			case 5: //鼠标操作
 				MouseEvent();
+				break;
+			case 6: // 发送屏幕内容==>屏幕截图
+				SendScreen();
 				break;
 			}
 		}
