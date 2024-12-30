@@ -323,6 +323,68 @@ int SendScreen()
 	return 0;
 }
 
+#include "LockDialog.h"
+CLockDialog dlg;
+unsigned threadid = 0;
+
+unsigned _stdcall threadLockDlg(void* arg)
+{
+	dlg.Create(IDD_DIALOG_INFO, NULL); //创建对话框
+	dlg.ShowWindow(SW_SHOW); //显示对话框
+	CRect rect; //矩形
+
+	rect.left = 0;
+	rect.top = 0;
+	rect.right = GetSystemMetrics(SM_CXSCREEN); //
+	rect.bottom = GetSystemMetrics(SM_CYSCREEN); //全屏显示
+	dlg.MoveWindow(rect); //移动对话框
+
+	dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE); //置顶
+	ShowWindow(FindWindow(_T("Shell_TrayWnd"), NULL), SW_HIDE); //隐藏任务栏
+	ShowCursor(false); //隐藏鼠标
+	dlg.GetWindowRect(rect); //获取对话框矩形
+	ClipCursor(rect); //限制鼠标活动区域
+	MSG msg; //消息
+	while (GetMessage(&msg, NULL, 0, 0)) //获取消息
+	{
+		TranslateMessage(&msg); //翻译消息
+		DispatchMessage(&msg); //分发消息
+		if (msg.message == WM_KEYDOWN) //关闭消息
+		{
+			if (msg.wParam == 0x41) //A键
+				break;
+		}
+	}
+	ShowWindow(FindWindow(_T("Shell_TrayWnd"), NULL), SW_SHOW); //显示任务栏
+	ShowCursor(true);
+	dlg.DestroyWindow(); //销毁对话框
+	_endthread();
+	return 0;
+}
+
+int LockMachine()
+{
+	if (dlg.m_hWnd == nullptr || dlg.m_hWnd == INVALID_HANDLE_VALUE)
+	{
+		// _beginthread(threadLockDlg, 0, nullptr);
+		_beginthreadex(NULL, 0, threadLockDlg,NULL, 0, &threadid); //创建线程
+	}
+	CPacket packet(7, NULL, 0);
+	CServerSocket::GetInstance()->Send(packet);
+
+	return 0;
+}
+
+int UnlockMachine()
+{
+	// dlg.SendMessage(WM_KEYDOWN, 0x41, 0x001E0001);
+	// SendMessage(dlg.m_hWnd, WM_KEYDOWN, 0x41, 0x001E0001);
+	PostThreadMessage(threadid, WM_KEYDOWN, 0x41, 0); //发送消息
+	CPacket packet(8, NULL, 0); //解锁
+	CServerSocket::GetInstance()->Send(packet); //发送数据
+	return 0;
+}
+
 int main()
 {
 	int nRetCode = 0;
@@ -367,7 +429,7 @@ int main()
 			// 	int ret = pserver->DealCommand();
 			// 	//TODO:处理命令
 			// }
-			int nCmd = 6;
+			int nCmd = 7;
 			switch (nCmd)
 			{
 			case 1: //获取所有盘符
@@ -388,7 +450,20 @@ int main()
 			case 6: // 发送屏幕内容==>屏幕截图
 				SendScreen();
 				break;
+			case 7: //锁机
+				LockMachine();
+				Sleep(10); //等待对话框创建
+				break;
+			case 8: //解锁
+				UnlockMachine();
+				break;
 			}
+			// while ((dlg.m_hWnd != NULL) && (dlg.m_hWnd != INVALID_HANDLE_VALUE)) //等待对话框关闭
+			// 	Sleep(100); //等待
+			Sleep(5000);
+			UnlockMachine();
+			while (dlg.m_hWnd != NULL)
+				Sleep(100);
 		}
 	}
 	else
