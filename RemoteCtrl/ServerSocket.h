@@ -196,9 +196,11 @@ public:
 
 	BOOL AcceptSocket()
 	{
+		TRACE("Enter AcceptSocket\r\n");
 		sockaddr_in client_addr;
 		int cli_sz = sizeof(client_addr);
 		m_client = accept(m_socket, (sockaddr*)&client_addr, &cli_sz);
+		TRACE("m_client =%d\r\n", m_client);
 		if (m_client == -1)
 			return FALSE;
 		return TRUE;
@@ -214,6 +216,11 @@ public:
 		}
 		// char buffer[1024] = ""; //缓冲区
 		char* buffer = new char[BUFFER_SIZE];
+		if (buffer == NULL)
+		{
+			TRACE("内存不足\r\n");
+			return -2;
+		}
 		memset(buffer, 0, BUFFER_SIZE);
 		size_t index = 0;
 		while (1)
@@ -221,6 +228,7 @@ public:
 			size_t len = recv(m_client, buffer + index, BUFFER_SIZE - index, 0); //接收数据
 			if (len <= 0)
 			{
+				delete[]buffer;
 				return -1;
 			}
 			index += len;
@@ -230,9 +238,11 @@ public:
 			{
 				memmove(buffer, buffer + len, BUFFER_SIZE - len);
 				index -= len;
+				delete[]buffer;
 				return m_packet.sCmd;
 			}
 		}
+		delete[]buffer;
 		return -1;
 	}
 
@@ -272,6 +282,17 @@ public:
 			return true;
 		}
 		return false;
+	}
+
+	CPacket& GetPacket()
+	{
+		return m_packet;
+	}
+
+	void CloseSocket()
+	{
+		closesocket(m_client);
+		m_client = INVALID_SOCKET;
 	}
 
 private:

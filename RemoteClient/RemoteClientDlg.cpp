@@ -1,5 +1,4 @@
-﻿
-// RemoteClientDlg.cpp: 实现文件
+﻿// RemoteClientDlg.cpp: 实现文件
 //
 
 #include "pch.h"
@@ -20,15 +19,15 @@ class CAboutDlg : public CDialogEx
 public:
 	CAboutDlg();
 
-// 对话框数据
+	// 对话框数据
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_ABOUTBOX };
 #endif
 
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX); // DDX/DDV 支持
 
-// 实现
+	// 实现
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -49,7 +48,6 @@ END_MESSAGE_MAP()
 // CRemoteClientDlg 对话框
 
 
-
 CRemoteClientDlg::CRemoteClientDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_REMOTECLIENT_DIALOG, pParent)
 {
@@ -65,6 +63,7 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BTN_TEST, &CRemoteClientDlg::OnBnClickedBtnTest)
 END_MESSAGE_MAP()
 
 
@@ -96,12 +95,12 @@ BOOL CRemoteClientDlg::OnInitDialog()
 
 	// 设置此对话框的图标。  当应用程序主窗口不是对话框时，框架将自动
 	//  执行此操作
-	SetIcon(m_hIcon, TRUE);			// 设置大图标
-	SetIcon(m_hIcon, FALSE);		// 设置小图标
+	SetIcon(m_hIcon, TRUE); // 设置大图标
+	SetIcon(m_hIcon, FALSE); // 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
 
-	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
+	return TRUE; // 除非将焦点设置到控件，否则返回 TRUE
 }
 
 void CRemoteClientDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -153,3 +152,20 @@ HCURSOR CRemoteClientDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+void CRemoteClientDlg::OnBnClickedBtnTest()
+{
+	//TODO: 在此添加控件通知处理程序代码
+	CClientSocket* pClient = CClientSocket::GetInstance();
+	bool ret = pClient->InitSocket("127.0.0.1"); //TODO:返回处理
+	if (!ret)
+	{
+		AfxMessageBox(_T("连接服务器失败"));
+		return;
+	}
+	CPacket packet(1981,NULL, 0);
+	pClient->Send(packet);
+	pClient->DealCommand();
+	TRACE("ack:%d \r\n", pClient->GetPacket().sCmd);
+	pClient->CloseSocket();
+}

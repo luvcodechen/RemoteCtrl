@@ -1,8 +1,10 @@
 #pragma once
 #include "pch.h"
 #include <string>
+#include <vector>
+
 #include "framework.h"
- 
+
 #pragma pack(push)
 #pragma pack(1)
 class CPacket
@@ -160,7 +162,7 @@ typedef struct MouseEvent
 } MOUSEEV, *PMOUSEEV;
 
 
-std::string GetErrorInfo(int wsaErrCode)
+inline std::string GetErrInfo(int wsaErrCode) //由于该函数所在头文件被多个文件包含，所以设置内联或者将定义放在cpp文件中
 {
 	std::string strError;
 	LPVOID lpMsgBuf = NULL; //接收错误信息
@@ -188,10 +190,15 @@ public:
 	} //获取单例
 	BOOL InitSocket(const std::string& strIPAddress)
 	{
+		if (m_socket != INVALID_SOCKET)
+			CloseSocket();
+
+		m_socket = socket(PF_INET, SOCK_STREAM, 0); //创建套接字
 		if (m_socket == -1)
 		{
 			return FALSE;
 		}
+
 		sockaddr_in server_addr;
 		memset(&server_addr, 0, sizeof(server_addr));
 		server_addr.sin_family = AF_INET;
@@ -208,7 +215,7 @@ public:
 		{
 			AfxMessageBox("连接失败"); //连接失败
 			TRACE("连接失败 %d %s\n", WSAGetLastError(),
-			      GetErrorInfo(WSAGetLastError()).c_str()); //输出错误信息
+			      GetErrInfo(WSAGetLastError()).c_str()); //输出错误信息
 			return FALSE;
 		}
 		return TRUE;
@@ -223,7 +230,7 @@ public:
 			return -1;
 		}
 		// char buffer[1024] = ""; //缓冲区
-		char* buffer = new char[BUFFER_SIZE];
+		char* buffer = m_buffer.data();
 		memset(buffer, 0, BUFFER_SIZE);
 		size_t index = 0;
 		while (1)
@@ -284,7 +291,19 @@ public:
 		return false;
 	}
 
+	CPacket& GetPacket()
+	{
+		return m_packet;
+	}
+
+	void CloseSocket()
+	{
+		closesocket(m_socket);
+		m_socket = INVALID_SOCKET;
+	}
+
 private:
+	std::vector<char> m_buffer; //缓冲区
 	SOCKET m_socket; //套接字
 
 	CPacket m_packet; //数据包
@@ -297,7 +316,7 @@ private:
 			MessageBox(NULL, _T("InitSocketEnv failed"), _T("Error"), MB_OK | MB_ICONERROR);
 			exit(0);
 		}
-		m_socket = socket(PF_INET, SOCK_STREAM, 0); //创建套接字
+		m_buffer.resize(BUFFER_SIZE);
 	} //构造函数
 
 	~CClientSocket()
