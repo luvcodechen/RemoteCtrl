@@ -1,27 +1,26 @@
-﻿
-// RemoteClientDlg.h: 头文件
+﻿// RemoteClientDlg.h: 头文件
 //
-
+#include "ClientSocket.h"
 #pragma once
 
 
 // CRemoteClientDlg 对话框
 class CRemoteClientDlg : public CDialogEx
 {
-// 构造
+	// 构造
 public:
-	CRemoteClientDlg(CWnd* pParent = nullptr);	// 标准构造函数
+	CRemoteClientDlg(CWnd* pParent = nullptr); // 标准构造函数
 
-// 对话框数据
+	// 对话框数据
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_REMOTECLIENT_DIALOG };
 #endif
 
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX); // DDX/DDV 支持
 
 
-// 实现
+	// 实现
 protected:
 	HICON m_hIcon;
 
