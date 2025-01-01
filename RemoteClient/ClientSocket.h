@@ -79,6 +79,7 @@ public:
 		{
 			strData.resize(nLength - 2 - 2); //包长-命令-校验和
 			memcpy((void*)strData.c_str(), pData + i, nLength - 2 - 2); //包数据
+			i+= nLength - 2 - 2; //跳过包数据
 		}
 
 		sSUM = *(WORD*)(pData + i); //校验和
@@ -124,7 +125,7 @@ public:
 		strOut.resize(nLength + 6);
 		BYTE* pData = (BYTE*)strOut.c_str();
 		*(WORD*)pData = sHead;
-		pData += 2;
+	 	pData += 2;
 		*(DWORD*)pData = nLength;
 		pData += 4;
 		*(WORD*)pData = sCmd;
@@ -188,7 +189,7 @@ public:
 		}
 		return m_pInstance;
 	} //获取单例
-	BOOL InitSocket(const std::string& strIPAddress)
+	BOOL InitSocket(int nIP, int nPort)
 	{
 		if (m_socket != INVALID_SOCKET)
 			CloseSocket();
@@ -202,8 +203,9 @@ public:
 		sockaddr_in server_addr;
 		memset(&server_addr, 0, sizeof(server_addr));
 		server_addr.sin_family = AF_INET;
-		server_addr.sin_addr.s_addr = inet_addr(strIPAddress.c_str());
-		server_addr.sin_port = htons(9527);
+		TRACE("addr %08X nIP %08X\r\n", inet_addr("127.0.0.1"), nIP);
+		server_addr.sin_addr.s_addr = htonl(nIP);
+		server_addr.sin_port = htons(nPort);
 
 		if (server_addr.sin_addr.s_addr == INADDR_NONE)
 		{

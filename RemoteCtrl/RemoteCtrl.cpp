@@ -54,7 +54,8 @@ int MakeDriverInfo() //1==>A盘 2==>B盘 3==>C盘 .. 26==>Z盘
 	}
 	CPacket packet(1, (BYTE*)result.c_str(), result.size()); //打包数据
 	Dump((BYTE*)packet.Data(), packet.Size());
-	// CServerSocket::GetInstance()->Send(packet);
+	int ret = CServerSocket::GetInstance()->Send(packet);
+	TRACE(_T("发送数据状态：ret=%d\r\n", ret));
 	return 0;
 }
 

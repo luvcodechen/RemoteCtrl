@@ -76,6 +76,7 @@ public:
 		{
 			strData.resize(nLength - 2 - 2); //包长-命令-校验和
 			memcpy((void*)strData.c_str(), pData + i, nLength - 2 - 2); //包数据
+			i+= nLength - 2 - 2; //跳过包数据
 		}
 
 		sSUM = *(WORD*)(pData + i); //校验和
