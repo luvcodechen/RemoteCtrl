@@ -79,7 +79,7 @@ public:
 		{
 			strData.resize(nLength - 2 - 2); //包长-命令-校验和
 			memcpy((void*)strData.c_str(), pData + i, nLength - 2 - 2); //包数据
-			i+= nLength - 2 - 2; //跳过包数据
+			i += nLength - 2 - 2; //跳过包数据
 		}
 
 		sSUM = *(WORD*)(pData + i); //校验和
@@ -125,7 +125,7 @@ public:
 		strOut.resize(nLength + 6);
 		BYTE* pData = (BYTE*)strOut.c_str();
 		*(WORD*)pData = sHead;
-	 	pData += 2;
+		pData += 2;
 		*(DWORD*)pData = nLength;
 		pData += 4;
 		*(WORD*)pData = sCmd;
@@ -177,6 +177,22 @@ inline std::string GetErrInfo(int wsaErrCode) //由于该函数所在头文件被多个文件包
 	LocalFree(lpMsgBuf); //释放内存
 	return strError;
 }
+
+typedef struct file_info
+{
+	file_info()
+	{
+		IsInvalid = FALSE;
+		IsDirectory = -1;
+		HasFile = TRUE;
+		memset(szFIleName, 0, sizeof(szFIleName));
+	}
+
+	BOOL IsInvalid; //是否是无效的 TRUE 是 FALSE 不是
+	BOOL IsDirectory; //是否是目录 TRUE 是 FALSE 不是
+	BOOL HasFile; //是否有文件 TRUE 是 FALSE 不是
+	char szFIleName[256];
+} FILEINFO, *PFILEINFO;
 
 class CClientSocket
 {

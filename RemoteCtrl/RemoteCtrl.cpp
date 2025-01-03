@@ -52,6 +52,10 @@ int MakeDriverInfo() //1==>A盘 2==>B盘 3==>C盘 .. 26==>Z盘
 			result += 'A' + i - 1;
 		}
 	}
+	if (result.size() > 0 && result[result.size() - 1] != ',')
+	{
+		result += ',';
+	}
 	CPacket packet(1, (BYTE*)result.c_str(), result.size()); //打包数据
 	Dump((BYTE*)packet.Data(), packet.Size());
 	int ret = CServerSocket::GetInstance()->Send(packet);
@@ -63,21 +67,6 @@ int MakeDriverInfo() //1==>A盘 2==>B盘 3==>C盘 .. 26==>Z盘
 #include <io.h>
 #include <list>
 
-typedef struct file_info
-{
-	file_info()
-	{
-		IsInvalid = FALSE;
-		IsDirectory = -1;
-		HasFile = TRUE;
-		memset(szFIleName, 0, sizeof(szFIleName));
-	}
-
-	BOOL IsInvalid; //是否是无效的 TRUE 是 FALSE 不是
-	BOOL IsDirectory; //是否是目录 TRUE 是 FALSE 不是
-	BOOL HasFile; //是否有文件 TRUE 是 FALSE 不是
-	char szFIleName[256];
-} FILEINFO, *PFILEINFO;
 
 int MakeDirectoryInfo()
 {
@@ -91,11 +80,7 @@ int MakeDirectoryInfo()
 	if (_chdir(strPath.c_str()) != 0)
 	{
 		FILEINFO finfo;
-		finfo.IsInvalid = TRUE;
-		finfo.IsDirectory = TRUE;
 		finfo.HasFile = FALSE;
-		memcpy(finfo.szFIleName, strPath.c_str(), strPath.size());
-		// lstFileInfos.push_back(finfo);
 		CPacket packet(2, (BYTE*)&finfo, sizeof(finfo));
 		CServerSocket::GetInstance()->Send(packet);
 		OutputDebugString(_T("没有权限访问目录！"));
@@ -106,6 +91,10 @@ int MakeDirectoryInfo()
 	if ((hfind = _findfirst("*", &fdata)) == -1)
 	{
 		OutputDebugString(_T("没有文件！"));
+		FILEINFO finfo;
+		finfo.HasFile = FALSE;
+		CPacket packet(2, (BYTE*)&finfo, sizeof(finfo));
+		CServerSocket::GetInstance()->Send(packet);
 		return -3;
 	}
 

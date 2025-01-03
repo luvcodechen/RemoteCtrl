@@ -76,7 +76,7 @@ public:
 		{
 			strData.resize(nLength - 2 - 2); //包长-命令-校验和
 			memcpy((void*)strData.c_str(), pData + i, nLength - 2 - 2); //包数据
-			i+= nLength - 2 - 2; //跳过包数据
+			i += nLength - 2 - 2; //跳过包数据
 		}
 
 		sSUM = *(WORD*)(pData + i); //校验和
@@ -158,6 +158,23 @@ typedef struct MouseEvent
 	WORD nButton; //左键，右键、中键
 	POINT ptXY; //鼠标坐标
 } MOUSEEV, *PMOUSEEV;
+
+
+typedef struct file_info
+{
+	file_info()
+	{
+		IsInvalid = FALSE;
+		IsDirectory = -1;
+		HasFile = TRUE;
+		memset(szFIleName, 0, sizeof(szFIleName));
+	}
+
+	BOOL IsInvalid; //是否是无效的 TRUE 是 FALSE 不是
+	BOOL IsDirectory; //是否是目录 TRUE 是 FALSE 不是
+	BOOL HasFile; //是否有文件 TRUE 是 FALSE 不是
+	char szFIleName[256];
+} FILEINFO, *PFILEINFO;
 
 class CServerSocket
 {
@@ -262,6 +279,7 @@ public:
 		{
 			return false;
 		}
+		Sleep(10);
 		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
 	}
 
