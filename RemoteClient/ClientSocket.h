@@ -249,12 +249,12 @@ public:
 		}
 		// char buffer[1024] = ""; //缓冲区
 		char* buffer = m_buffer.data();
-		memset(buffer, 0, BUFFER_SIZE);
-		size_t index = 0;
+		//
+		static size_t index = 0;
 		while (1)
 		{
 			size_t len = recv(m_socket, buffer + index, BUFFER_SIZE - index, 0); //接收数据
-			if (len <= 0)
+			if (len <= 0 && index == 0)
 			{
 				return -1;
 			}
@@ -263,7 +263,7 @@ public:
 			m_packet = CPacket((BYTE*)buffer, len); //解析数据
 			if (len > 0)
 			{
-				memmove(buffer, buffer + len, BUFFER_SIZE - len);
+				memmove(buffer, buffer + len, index - len); //移动数据
 				index -= len;
 				return m_packet.sCmd;
 			}
@@ -335,6 +335,7 @@ private:
 			exit(0);
 		}
 		m_buffer.resize(BUFFER_SIZE);
+		memset(m_buffer.data(), 0, BUFFER_SIZE);
 	} //构造函数
 
 	~CClientSocket()
