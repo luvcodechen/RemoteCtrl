@@ -154,6 +154,7 @@ int DownloadFile() //下载文件
 		fseek(pFile, 0, SEEK_END); //将文件指针移动到文件末尾
 		data = _ftelli64(pFile); //获取文件大小
 		CPacket head(4, (BYTE*)&data, 8);
+		CServerSocket::GetInstance()->Send(head); //发送文件大小
 		fseek(pFile, 0, SEEK_SET); //将文件指针移动到文件开头
 		char buffer[1024] = "";
 		size_t rlen = 0;
