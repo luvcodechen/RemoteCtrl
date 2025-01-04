@@ -224,6 +224,30 @@ void CRemoteClientDlg::OnBnClickedBtnFileinfo()
 	}
 }
 
+void CRemoteClientDlg::LoadFIleCurrent()
+{
+	HTREEITEM htree = m_tree.GetSelectedItem(); //获取选中的树控件项
+	m_List.DeleteAllItems(); //删除列表项
+	CString strPath = GetPath(htree);
+	int cmd = SendCommandPack(2, false, (BYTE*)(LPCTSTR)strPath, strPath.GetLength());
+	PFILEINFO pfileinfo = (PFILEINFO)CClientSocket::GetInstance()->GetPacket().strData.c_str();
+	CClientSocket* pClient = CClientSocket::GetInstance();
+	while (pfileinfo->HasFile) //
+	{
+		TRACE("[%s] isdir %d\r\n", pfileinfo->szFIleName, pfileinfo->IsDirectory); //输出文件信息
+		if (!pfileinfo->IsDirectory) //是目录
+		{
+			m_List.InsertItem(0, pfileinfo->szFIleName); //插入文件
+		}
+
+		cmd = pClient->DealCommand();
+		TRACE(" ask:%d \r\n", cmd);
+		if (cmd < 0)break;
+		pfileinfo = (PFILEINFO)pClient->GetPacket().strData.c_str(); //
+	}
+	pClient->CloseSocket();
+}
+
 void CRemoteClientDlg::LoadFileInfo()
 {
 	CPoint ptMouse;
@@ -337,9 +361,9 @@ void CRemoteClientDlg::OnDownloadFile()
 	CString strFile = m_List.GetItemText(nListSelected, 0); //获取选中的文件名
 
 	CFileDialog dlg(FALSE, "*",
-		strFile,
-		OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
-		NULL, this);
+	                strFile,
+	                OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+	                NULL, this);
 	if (dlg.DoModal() == IDOK)
 	{
 		FILE* fp = fopen(dlg.GetPathName(), "wb+");
@@ -381,7 +405,8 @@ void CRemoteClientDlg::OnDownloadFile()
 				fwrite(pClient->GetPacket().strData.c_str(), 1, pClient->GetPacket().strData.size(), fp);
 				count += pClient->GetPacket().strData.size();
 			}
-		} while (false);
+		}
+		while (false);
 		AfxMessageBox("下载成功");
 		fclose(fp);
 		pClient->CloseSocket();
@@ -391,11 +416,30 @@ void CRemoteClientDlg::OnDownloadFile()
 
 void CRemoteClientDlg::OnDeleteFile()
 {
-	// TODO: 在此添加命令处理程序代码
+	HTREEITEM hSelected = m_tree.GetSelectedItem(); //获取选中的树控件项
+	CString strPath = GetPath(hSelected); //获取选中的文件路径
+	int nSelected = m_List.GetSelectionMark(); //获取选中的列表项
+	CString strFile = m_List.GetItemText(nSelected, 0); //获取选中的文件名
+	strFile = strPath + strFile;
+	int ret = SendCommandPack(9, true, (BYTE*)(LPCTSTR)strFile, strFile.GetLength());
+	if (ret < 0)
+	{
+		AfxMessageBox(_T("删除文件失败"));
+	}
+	LoadFIleCurrent();
 }
 
 
 void CRemoteClientDlg::OnOpenFile()
 {
-	// TODO: 在此添加命令处理程序代码
+	HTREEITEM hSelected = m_tree.GetSelectedItem(); //获取选中的树控件项
+	CString strPath = GetPath(hSelected); //获取选中的文件路径
+	int nSelected = m_List.GetSelectionMark(); //获取选中的列表项
+	CString strFile = m_List.GetItemText(nSelected, 0); //获取选中的文件名
+	strFile = strPath + strFile;
+	int ret = SendCommandPack(3, true, (BYTE*)(LPCTSTR)strFile, strFile.GetLength());
+	if (ret < 0)
+	{
+		AfxMessageBox(_T("打开文件失败"));
+	}
 }
