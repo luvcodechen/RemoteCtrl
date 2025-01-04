@@ -337,9 +337,9 @@ void CRemoteClientDlg::OnDownloadFile()
 	CString strFile = m_List.GetItemText(nListSelected, 0); //获取选中的文件名
 
 	CFileDialog dlg(FALSE, "*",
-	                strFile,
-	                OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
-	                NULL, this);
+		strFile,
+		OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+		NULL, this);
 	if (dlg.DoModal() == IDOK)
 	{
 		FILE* fp = fopen(dlg.GetPathName(), "wb+");
@@ -351,34 +351,37 @@ void CRemoteClientDlg::OnDownloadFile()
 		HTREEITEM hSelected = m_tree.GetSelectedItem(); //获取选中的树控件项
 		strFile = GetPath(hSelected) + strFile;
 		TRACE("%s \r\n", (LPCTSTR)strFile);
-		int ret = SendCommandPack(4, false, (BYTE*)(LPCTSTR)strFile, strFile.GetLength());
-		if (ret < 0)
-		{
-			AfxMessageBox(_T("下载文件失败"));
-			TRACE("执行下载失败 ret=%d\r\n", ret);
-			return;
-		}
 		CClientSocket* pClient = CClientSocket::GetInstance();
-		long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
-		if (nLength == 0)
+		do
 		{
-			AfxMessageBox("文件长度为0或无法下载");
-			return;
-		}
-		long long count = 0;
-
-		while (count < nLength)
-		{
-			ret = pClient->DealCommand();
+			int ret = SendCommandPack(4, false, (BYTE*)(LPCTSTR)strFile, strFile.GetLength());
 			if (ret < 0)
 			{
-				AfxMessageBox(_T("传输失败"));
-				TRACE("传输失败 ret=%d\r\n", ret);
-				break;
+				AfxMessageBox(_T("下载文件失败"));
+				TRACE("执行下载失败 ret=%d\r\n", ret);
+				return;
 			}
-			fwrite(pClient->GetPacket().strData.c_str(), 1, pClient->GetPacket().strData.size(), fp);
-			count += pClient->GetPacket().strData.size();
-		}
+			long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
+			if (nLength == 0)
+			{
+				AfxMessageBox("文件长度为0或无法下载");
+				return;
+			}
+			long long count = 0;
+
+			while (count < nLength)
+			{
+				ret = pClient->DealCommand();
+				if (ret < 0)
+				{
+					AfxMessageBox(_T("传输失败"));
+					TRACE("传输失败 ret=%d\r\n", ret);
+					break;
+				}
+				fwrite(pClient->GetPacket().strData.c_str(), 1, pClient->GetPacket().strData.size(), fp);
+				count += pClient->GetPacket().strData.size();
+			}
+		} while (false);
 		AfxMessageBox("下载成功");
 		fclose(fp);
 		pClient->CloseSocket();
