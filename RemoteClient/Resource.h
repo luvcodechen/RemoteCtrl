@@ -11,6 +11,7 @@
 #define IDR_MENU_RCLICK                 130
 #define IDD_DLG_STATUS                  131
 #define IDD_DIALOG1                     133
+#define IDD_DLG_WATCH                   133
 #define IDC_BTN_TEST                    1000
 #define IDC_EDIT_PORT                   1001
 #define IDC_IPADDRESS_SERV              1003
@@ -19,7 +20,6 @@
 #define IDC_BTN                         1006
 #define IDC_BTN_FILEINFO                1006
 #define IDC_EDIT_INFO                   1007
-#define IDC_BTN_                        1008
 #define IDC_BTN_START__WATCH            1008
 #define IDC_WATCH                       1009
 #define ID_32771                        32771

@@ -23,6 +23,7 @@ CWatchDialog::~CWatchDialog()
 void CWatchDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_WATCH, m_picture);
 }
 
 
@@ -39,7 +40,7 @@ BOOL CWatchDialog::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	// TODO:  在此添加额外的初始化
-	SetTimer(0, 50, NULL);
+	SetTimer(0, 45, NULL);
 	return TRUE; // return TRUE unless you set the focus to a control
 	// 异常: OCX 属性页应返回 FALSE
 }
@@ -48,12 +49,19 @@ BOOL CWatchDialog::OnInitDialog()
 void CWatchDialog::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	if (nIDEvent == 0)
+	if (nIDEvent == 0) //定时器
 	{
-		CRemoteClientDlg* pPartent = (CRemoteClientDlg*)GetParent(); //获取父窗口指针
-		if (pPartent->isFull())
+		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent(); //获取父窗口指针
+		if (pParent->isFull())
 		{
-
+			CRect rect;
+			// pParent->getImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0,SRCCOPY); //将图片显示到控件上
+			m_picture.GetWindowRect(rect); //获取控件大小
+			pParent->getImage().StretchBlt(
+				m_picture.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(),SRCCOPY); //拉伸图片
+			m_picture.InvalidateRect(NULL); //刷新控件
+			pParent->getImage().Destroy(); //销毁图片
+			pParent->SetImageStatus(); //设置图片状态
 		}
 	}
 	CDialog::OnTimer(nIDEvent);
