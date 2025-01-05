@@ -6,6 +6,7 @@
 #include "RemoteClient.h"
 #include "RemoteClientDlg.h"
 #include "afxdialogex.h"
+#include "CWatchDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -99,6 +100,8 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_COMMAND(ID_DELETE_FILE, &CRemoteClientDlg::OnDeleteFile)
 	ON_COMMAND(ID_OPEN_FILE, &CRemoteClientDlg::OnOpenFile)
 	ON_MESSAGE(WM_SEND_PACKET, &CRemoteClientDlg::OnSendPacket) //自定义消息处理函数,注册消息
+	ON_BN_CLICKED(IDC_BTN_START__WATCH, &CRemoteClientDlg::OnBnClickedBtnStart)
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 
@@ -252,11 +255,27 @@ void CRemoteClientDlg::threadWatchData()
 			int cmd = pClient->DealCommand(); //拿数据
 			if (cmd == 6)
 			{
-				if (m_isFull == false)
+				if (m_isFull == false)//更新数据到缓存
 				{
 					BYTE* pData = (BYTE*)pClient->GetPacket().strData.c_str();
-					//TODO:存入image
-					m_isFull = true;
+					HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0); //分配内存
+					if (hMem == NULL)
+					{
+						AfxMessageBox("内存分配失败");
+						Sleep(1);
+						continue;
+					}
+					IStream* pStream = NULL; //创建流对象
+					HRESULT hRet = CreateStreamOnHGlobal(hMem, true, &pStream); //创建流对象
+					if (hRet == S_OK) //创建成功
+					{
+						ULONG length = 0;
+						pStream->Write(pData, pClient->GetPacket().strData.size(), &length); //写入数据
+						LARGE_INTEGER bg = {0};
+						pStream->Seek(bg, STREAM_SEEK_SET, NULL); //设置流的位置
+						m_image.Load(pStream); //加载图片
+						m_isFull = true;
+					}
 				}
 			}
 		}
@@ -513,4 +532,20 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) //	实现�
 	CString strFile = (LPCSTR)lParam;
 	int ret = SendCommandPack(wParam >> 1, wParam & 1, (BYTE*)(LPCTSTR)strFile, strFile.GetLength());
 	return ret;
+}
+
+
+void CRemoteClientDlg::OnBnClickedBtnStart()
+{
+	_beginthread(CRemoteClientDlg::threadEntryForWatch, 0, this);//创建线程
+	CWatchDialog dlg(this);//创建对话框
+	dlg.DoModal();//显示对话框	
+}
+
+
+void CRemoteClientDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	CDialogEx::OnTimer(nIDEvent);
 }
