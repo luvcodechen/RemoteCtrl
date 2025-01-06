@@ -239,7 +239,7 @@ public:
 		return TRUE;
 	}
 
-#define BUFFER_SIZE 4096000
+#define BUFFER_SIZE 10240000
 
 	int DealCommand()
 	{
