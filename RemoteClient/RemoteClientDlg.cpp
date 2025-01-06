@@ -138,7 +138,8 @@ BOOL CRemoteClientDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	UpdateData();
-	m_server_address = 0x7f000001; //
+	// m_server_address = 0x7f000001; //
+	m_server_address = 0xC0A8B185; // 192.168.177.133
 	m_port = _T("9527"); //
 	UpdateData(false);
 	m_dlgStatus.Create(IDD_DLG_STATUS, this); //创建状态对话框
@@ -240,6 +241,7 @@ void CRemoteClientDlg::threadEntryForWatch(void* args)
 
 void CRemoteClientDlg::threadWatchData()
 {
+	//TODO：可能存在bug
 	Sleep(50); //等待
 	CClientSocket* pClient = NULL;
 	do
@@ -247,7 +249,7 @@ void CRemoteClientDlg::threadWatchData()
 		pClient = CClientSocket::GetInstance();
 	}
 	while (pClient == NULL); //等待客户端连接
-	for (;;)
+	while (!m_isClosed)
 	{
 		if (m_isFull == false) //更新数据到缓存
 		{
@@ -538,7 +540,7 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) //	实现�
 			int ret = SendCommandPack(cmd, wParam & 1, (BYTE*)(LPCTSTR)strFile, strFile.GetLength());
 		}
 		break;
-	case 5://鼠标操作
+	case 5: //鼠标操作
 		{
 			ret = SendCommandPack(cmd, wParam & 1, (BYTE*)lParam, sizeof(MOUSEEV));
 		}
@@ -559,9 +561,12 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) //	实现�
 
 void CRemoteClientDlg::OnBnClickedBtnStart()
 {
+	m_isClosed = false;
 	CWatchDialog dlg(this); //创建对话框
-	_beginthread(CRemoteClientDlg::threadEntryForWatch, 0, this); //创建线程
-	dlg.DoModal(); //显示对话框	
+	HANDLE hThread = (HANDLE)_beginthread(CRemoteClientDlg::threadEntryForWatch, 0, this); //创建线程
+	dlg.DoModal(); //显示对话框
+	m_isClosed = true;
+	WaitForSingleObject(hThread, 500); //等待线程结束
 }
 
 

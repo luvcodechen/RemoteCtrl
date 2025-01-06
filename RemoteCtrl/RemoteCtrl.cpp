@@ -177,23 +177,24 @@ int MouseEvent()
 	MOUSEEV mouse;
 	if (CServerSocket::GetInstance()->GetMouseEvent(mouse))
 	{
+		SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);
 		DWORD nFlags = 0;
 		switch (mouse.nButton)
 		{
 		case 0: //左键
-			nFlags = 1;
+			nFlags = 0x01;
 			break;
 		case 1: //右键
-			nFlags = 2;
+			nFlags = 0x02;
 			break;
 		case 2: //中键
-			nFlags = 4;
+			nFlags = 0x04;
 			break;
 		case 4: //没有按键
-			nFlags = 8;
+			nFlags = 0x08;
 			break;
 		}
-		if (nFlags != 8)SetCursorPos(mouse.ptXY.x, mouse.ptXY.y); //设置鼠标位置
+		// if (nFlags != 8)SetCursorPos(mouse.ptXY.x, mouse.ptXY.y); //设置鼠标位置
 		switch (mouse.nAction)
 		{
 		case 0: //单机
@@ -253,9 +254,10 @@ int MouseEvent()
 		case 0x84: //中键弹起
 			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
 			break;
-		case 0x8:
+		case 0x08:
 			//单纯的鼠标移动
-			mouse_event(MOUSEEVENTF_MOVE, mouse.ptXY.x, mouse.ptXY.y, 0, GetMessageExtraInfo());
+			//mouse_event(MOUSEEVENTF_MOVE, mouse.ptXY.x, mouse.ptXY.y, 0, GetMessageExtraInfo());//已弃用
+			SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);
 			break;
 		}
 		CPacket packet(5, NULL, 0);
@@ -271,6 +273,129 @@ int MouseEvent()
 	return 0;
 }
 
+//int MouseEvent()
+//{
+//	//temp要用到解包的构造函数TODO:temp(..)
+//	MOUSEINFO mous{}; int nFlag;
+//	if (CSerInitDispose::pSerdisp->GetMouseChEvent(&mous)) {
+//		SetCursorPos(mous.Mousepos.x, mous.Mousepos.y);
+//		switch (mous.MouseButton)
+//		{
+//		case 0://左键
+//			nFlag = 0x01;
+//			break;
+//		case 1://中间
+//			nFlag = 0x02;
+//			break;
+//		case 2://右键
+//			nFlag = 0x04;
+//			break;
+//
+//		case 3://没有按键触发(只有鼠标移动时)
+//			nFlag = 0x08;
+//			break;
+//		default:
+//			return -1;
+//		}
+//		switch (mous.MouseAction)
+//		{
+//		case 0://单击
+//			nFlag |= 0x10;
+//			break;
+//		case 1://双击
+//			nFlag |= 0x20;
+//			break;
+//		case 2://按下
+//			nFlag |= 0x40;
+//			break;
+//		case 3://弹起
+//			nFlag |= 0x80;
+//			break;
+//		case 4://鼠标移动
+//			nFlag |= 0x100;
+//			break;
+//		case 5://按下并移动
+//			nFlag |= 0x140;
+//			break;
+//		default:
+//			break;
+//		}
+//		switch (nFlag)
+//		{
+//		case 0x21://左键双击
+//			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+//			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());//由于没有break中断,所以会继续执行下面的命令,所以就相当于点击了两次.
+//		case 0x11://左键单击
+//			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+//			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//		case 0x41://左键按下
+//			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+//
+//			break;
+//		case 0x81://左键弹起
+//
+//			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//		case 0x141://左键按下并移动
+//			mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_MOVE, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//		case 0x22://右键双击
+//			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+//			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+//		case 0x12://右键单击
+//			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+//			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//		case 0x42://右键按下
+//			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+//
+//			break;
+//		case 0x82://右键弹起
+//
+//			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//		case 0x142://右键按下并移动
+//			mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_MOVE, 0, 0, 0, GetMessageExtraInfo());
+//
+//			break;
+//		case 0x24://中键双击
+//			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+//			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+//		case 0x14://中键单击
+//			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+//			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//
+//		case 0x44://中键按下
+//			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//		case 0x84://中键弹起
+//			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//		case 0x144://中键按下并移动
+//			mouse_event(MOUSEEVENTF_MIDDLEDOWN | MOUSEEVENTF_MOVE, 0, 0, 0, GetMessageExtraInfo());
+//			break;
+//		case 0x108://单纯鼠标移动
+//			mouse_event(MOUSEEVENTF_MOVE, mous.Mousepos.x, mous.Mousepos.y, 0, GetMessageExtraInfo());
+//			break;
+//
+//		default:
+//			return -1;
+//		}
+//
+//		if (CSerInitDispose::pSerdisp->Msgsend(CPacket(5, NULL, 0)) != TRUE) //nSize为data大小，即数据大小
+//		{
+//			OutputDebugString(_T("鼠标操作的确认消息发送给客户端失败！"));
+//		};
+//	}
+//	else {
+//		OutputDebugString(_T("获取鼠标操作参数失败！！"));
+//		return -1;
+//	}
+//
+//	return TRUE;
+//}
 int SendScreen()
 {
 	CImage screen; //屏幕截图 GDI
@@ -279,7 +404,7 @@ int SendScreen()
 	int nWidth = GetDeviceCaps(hScreen,HORZRES); //水平分辨率
 	int nHeight = GetDeviceCaps(hScreen,VERTRES); //垂直分辨率
 	screen.Create(nWidth, nHeight, nBitPerPixel); //创建一个与屏幕相同大小的图片
-	BitBlt(screen.GetDC(), 0, 0, 3840, 2100, hScreen, 0, 0, SRCCOPY); //将屏幕内容拷贝到图片
+	BitBlt(screen.GetDC(), 0, 0, nWidth, nHeight, hScreen, 0, 0, SRCCOPY); //将屏幕内容拷贝到图片
 	ReleaseDC(NULL, hScreen); //释放屏幕DC
 	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0); //分配内存
 	if (hMem == NULL)
