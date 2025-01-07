@@ -550,6 +550,10 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) //	实现�
 			ret = SendCommandPack(cmd, wParam & 1);
 		}
 		break;
+	case 7:
+	case 8:
+		ret = SendCommandPack(cmd, wParam & 1);
+		break;
 	default:
 		ret = -1;
 		break;

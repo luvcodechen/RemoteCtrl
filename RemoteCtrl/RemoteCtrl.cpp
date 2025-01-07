@@ -59,7 +59,7 @@ int MakeDriverInfo() //1==>A盘 2==>B盘 3==>C盘 .. 26==>Z盘
 	CPacket packet(1, (BYTE*)result.c_str(), result.size()); //打包数据
 	Dump((BYTE*)packet.Data(), packet.Size());
 	int ret = CServerSocket::GetInstance()->Send(packet);
-	TRACE(_T("发送数据状态：ret=%d\r\n", ret));
+	TRACE("发送数据状态：ret=%d\r\n", ret);
 	return 0;
 }
 
@@ -449,12 +449,24 @@ unsigned _stdcall threadLockDlg(void* arg)
 	dlg.ShowWindow(SW_SHOW); //显示对话框
 	CRect rect; //矩形
 
-	rect.left = 0;
-	rect.top = 0;
+	rect.left = 0;//左上角坐标
+	rect.top = 0;//左上角坐标
 	rect.right = GetSystemMetrics(SM_CXSCREEN); //
 	rect.bottom = GetSystemMetrics(SM_CYSCREEN); //全屏显示
 	dlg.MoveWindow(rect); //移动对话框
-
+	CWnd* pText = dlg.GetDlgItem(IDC_STATIC);
+	if(pText)
+	{
+		CRect rtText;
+		pText->GetWindowRect(rtText);
+		int nWidth = rtText.Width()/2;
+		int nHeight = rtText.Height()/2;
+		rtText.left = rect.Width()/2 - nWidth;
+		rtText.top = rect.Height()/2 - nHeight;
+		rtText.right = rect.Width()/2 + nWidth;
+		rtText.bottom = rect.Height()/2 + nHeight;
+		pText->MoveWindow(rtText);
+	}
 	dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE); //置顶
 	ShowWindow(FindWindow(_T("Shell_TrayWnd"), NULL), SW_HIDE); //隐藏任务栏
 	ShowCursor(false); //隐藏鼠标
@@ -611,7 +623,7 @@ int main()
 					ret = ExcuteCommand(pserver->GetPacket().sCmd);
 					if (ret != 0)
 					{
-						TRACE(_T("命令执行失败:%d ret=%d\r\n", pserver->GetPacket().sCmd, ret));
+						TRACE("命令执行失败:%d ret=%d\r\n", pserver->GetPacket().sCmd, ret);
 					}
 					pserver->CloseSocket();
 					TRACE("Command has done!\r\n");

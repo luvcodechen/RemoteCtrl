@@ -39,6 +39,8 @@ BEGIN_MESSAGE_MAP(CWatchDialog, CDialog)
 	ON_WM_RBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_STN_CLICKED(IDC_WATCH, &CWatchDialog::OnStnClickedWatch)
+	ON_BN_CLICKED(IDC_BTN_LOCK, &CWatchDialog::OnBnClickedBtnLock)
+	ON_BN_CLICKED(IDC_BTN_UNLOCK, &CWatchDialog::OnBnClickedBtnUnlock)
 END_MESSAGE_MAP()
 
 
@@ -50,7 +52,18 @@ CPoint CWatchDialog::UserPoint2RemoteScreenPoint(CPoint& point, bool isScreen)
 	//800 450
 	CRect clientRect;
 	if (isScreen)
+	{
+		// CStatic *pStatic = (CStatic*)GetDlgItem(IDC_WATCH);//获取控件指针
+		// if(pStatic)
+		// {
+		// 	CRect rect;
+		// 	pStatic->GetWindowRect(rect);
+		// 	ScreenToClient(&point); //转换为相对坐标
+		// 	point.y-=rect.top;//减去标题栏高度
+		// }
 		ScreenToClient(&point); //转换为相对坐标
+	}
+	// ScreenToClient(&point); //转换为相对坐标
 	TRACE("x %d y %d\r\n", point.x, point.y);
 	m_picture.GetWindowRect(clientRect); //获取控件的坐标
 	TRACE("width %d height %d\r\n", clientRect.Width(), clientRect.Height());
@@ -70,7 +83,6 @@ BOOL CWatchDialog::OnInitDialog()
 
 void CWatchDialog::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (nIDEvent == 0) //定时器
 	{
 		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent(); //获取父窗口指针
@@ -164,7 +176,7 @@ void CWatchDialog::OnRButtonDblClk(UINT nFlags, CPoint point)
 		event.nAction = 1; //双击
 		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
 		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM)&event);
-
+		TRACE("OnRButtonDown===========================================\r\n");
 
 		CDialog::OnRButtonDblClk(nFlags, point);
 	}
@@ -264,7 +276,19 @@ void CWatchDialog::OnStnClickedWatch()
 
 void CWatchDialog::OnOK()
 {
-	// TODO: 在此添加专用代码和/或调用基类
+	//CDialog::OnOK();//屏蔽回车键
+}
 
-	//CDialog::OnOK();
+
+void CWatchDialog::OnBnClickedBtnLock()
+{
+	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+	pParent->SendMessage(WM_SEND_PACKET, 7 << 1 | 1);
+}
+
+
+void CWatchDialog::OnBnClickedBtnUnlock()
+{
+	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+	pParent->SendMessage(WM_SEND_PACKET, 8 << 1 | 1);
 }
