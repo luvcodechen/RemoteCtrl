@@ -26,7 +26,7 @@ CCommand::CCommand(): threadid(0)
 	}
 }
 
-int CCommand::ExecuteCommand(int nCmd)
+int CCommand::ExecuteCommand(int nCmd, std::list<CPacket>& lstPacket, CPacket& inPacket)
 {
 	std::map<int, CMDFUNC>::iterator it = m_mapCmd.find(nCmd); //²éÕÒÃüÁî
 	if (it == m_mapCmd.end())
@@ -34,5 +34,5 @@ int CCommand::ExecuteCommand(int nCmd)
 		return -1;
 	}
 
-	return (this->*it->second)();
+	return (this->*it->second)(lstPacket,inPacket);
 }

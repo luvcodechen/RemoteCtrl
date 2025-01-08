@@ -21,6 +21,7 @@
 CWinApp theApp;
 
 using namespace std;
+
 int main()
 {
 	int nRetCode = 0;
@@ -38,42 +39,18 @@ int main()
 		}
 		else
 		{
-			// TODO: 在此处为应用程序的行为编写代码。
-			// socket、bind,listen,accept,read,write,close
-
-			//套接字初始化
-			// server;
 			CCommand cmd;
-			CServerSocket* pserver = CServerSocket::GetInstance();
-			int count = 0;
-			if (pserver->InitSocket() == false)
+			int ret = CServerSocket::GetInstance()->Run(&CCommand::RunCommand, &cmd);
+			switch (ret)
 			{
+			case -1:
 				MessageBox(NULL, L"网络初始化失败", L"错误", MB_OK | MB_ICONERROR);
 				exit(0);
-			}
-			while (CServerSocket::GetInstance() != nullptr)
-			{
-				if (pserver->AcceptSocket() == false)
-				{
-					if (count >= 3)
-					{
-						MessageBox(NULL, L"多次无法正常接入用户", L"接入用户失败", MB_OK | MB_ICONERROR);
-						exit(0);
-					}
-					MessageBox(NULL, L"无法正常接入用户，自动重试", L"接入用户失败", MB_OK | MB_ICONERROR);
-					count++;
-				}
-				int ret = pserver->DealCommand();
-				if (ret > 0)
-				{
-					ret = cmd.ExecuteCommand(ret);
-					if (ret != 0)
-					{
-						TRACE("命令执行失败:%d ret=%d\r\n", pserver->GetPacket().sCmd, ret);
-					}
-					pserver->CloseSocket();
-					TRACE("Command has done!\r\n");
-				}
+				break;
+			case -2:
+				MessageBox(NULL, L"多次无法正常接入用户", L"接入用户失败", MB_OK | MB_ICONERROR);
+				exit(0);
+				break;
 			}
 		}
 	}
