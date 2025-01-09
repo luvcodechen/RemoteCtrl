@@ -61,6 +61,33 @@ public:
 		}
 	}
 
+protected:
+	BOOL InitSocket(short port)
+	{
+		if (m_socket == -1)
+		{
+			return FALSE;
+		}
+
+		sockaddr_in server_addr;
+		memset(&server_addr, 0, sizeof(server_addr));
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+		server_addr.sin_port = htons(9527);
+
+		if (bind(m_socket, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
+		{
+			return FALSE;
+		}
+
+		if (listen(m_socket, 1) == -1) //
+		{
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
 	BOOL AcceptSocket()
 	{
 		TRACE("Enter AcceptSocket\r\n");
@@ -134,30 +161,6 @@ public:
 		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
 	}
 
-	bool GetFilePath(std::string& strPath) const
-	{
-		if (((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4)) || (m_packet.sCmd == 9))
-		{
-			strPath = m_packet.strData;
-			return true;
-		}
-		return false;
-	}
-
-	bool GetMouseEvent(MOUSEEV& mouse)
-	{
-		if (m_packet.sCmd == 5)
-		{
-			memcpy(&mouse, m_packet.strData.c_str(), sizeof(MOUSEEV)); //获取鼠标事件
-			return true;
-		}
-		return false;
-	}
-
-	CPacket& GetPacket()
-	{
-		return m_packet;
-	}
 
 	void CloseSocket()
 	{
@@ -166,33 +169,6 @@ public:
 			closesocket(m_client);
 			m_client = INVALID_SOCKET;
 		}
-	}
-
-protected:
-	BOOL InitSocket(short port)
-	{
-		if (m_socket == -1)
-		{
-			return FALSE;
-		}
-
-		sockaddr_in server_addr;
-		memset(&server_addr, 0, sizeof(server_addr));
-		server_addr.sin_family = AF_INET;
-		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-		server_addr.sin_port = htons(9527);
-
-		if (bind(m_socket, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
-			return FALSE;
-		}
-
-		if (listen(m_socket, 1) == -1) //
-		{
-			return FALSE;
-		}
-
-		return TRUE;
 	}
 
 private:
