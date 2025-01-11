@@ -120,7 +120,7 @@ public:
 		return nLength + 6;
 	}
 
-	const char* Data() //包数据
+	const char* Data(std::string& strOut) const //包数据
 	{
 		strOut.resize(nLength + 6);
 		BYTE* pData = (BYTE*)strOut.c_str();
@@ -142,7 +142,7 @@ public:
 	WORD sCmd; //命令
 	std::string strData; //包数据
 	WORD sSUM; //校验和
-	std::string strOut; //整个包的数据
+	// std::string strOut; //整个包的数据
 };
 #pragma pack(pop)
 
@@ -205,7 +205,7 @@ public:
 		}
 		return m_pInstance;
 	} //获取单例
-	BOOL InitSocket(int nIP, int nPort)
+	BOOL InitSocket()
 	{
 		if (m_socket != INVALID_SOCKET)
 			CloseSocket();
@@ -219,9 +219,9 @@ public:
 		sockaddr_in server_addr;
 		memset(&server_addr, 0, sizeof(server_addr));
 		server_addr.sin_family = AF_INET;
-		TRACE("addr %08X nIP %08X\r\n", inet_addr("127.0.0.1"), nIP);
-		server_addr.sin_addr.s_addr = htonl(nIP);
-		server_addr.sin_port = htons(nPort);
+		TRACE("addr %08X nIP %08X\r\n", inet_addr("127.0.0.1"), m_nIP);
+		server_addr.sin_addr.s_addr = htonl(m_nIP);
+		server_addr.sin_port = htons(m_nPort);
 
 		if (server_addr.sin_addr.s_addr == INADDR_NONE)
 		{
@@ -280,13 +280,15 @@ public:
 		return true;
 	}
 
-	bool Send(CPacket& pack)
+	bool Send(const CPacket& pack)
 	{
 		if (m_socket == -1)
 		{
 			return false;
 		}
-		return send(m_socket, pack.Data(), pack.Size(), 0) > 0;
+		std::string strOut;
+		pack.Data(strOut);
+		return send(m_socket, strOut.c_str(), strOut.size(), 0) > 0;
 	}
 
 	bool GetFilePath(std::string& strPath) const
@@ -320,14 +322,22 @@ public:
 		m_socket = INVALID_SOCKET;
 	}
 
+	void UpdateAddress(int nIP, int nPort)
+	{
+		m_nIP = nIP;
+		m_nPort = nPort;
+	}
+
 private:
+	int m_nIP; //ip地址
+	int m_nPort; //端口
 	std::vector<char> m_buffer; //缓冲区
 	SOCKET m_socket; //套接字
 
 	CPacket m_packet; //数据包
 	CClientSocket& operator=(const CClientSocket&); //禁止赋值
 	CClientSocket(const CClientSocket&); //禁止拷贝
-	CClientSocket()
+	CClientSocket(): m_nIP(INADDR_ANY), m_nPort(0) //构造函数
 	{
 		if (InitSocketEnv() == FALSE)
 		{

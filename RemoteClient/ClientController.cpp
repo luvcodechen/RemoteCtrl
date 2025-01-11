@@ -52,6 +52,87 @@ LRESULT CClientController::SendMessage(MSG msg)
 	return info.result; //返回结果
 }
 
+void CClientController::threadWatchScreen()
+{
+	Sleep(50);
+	while (!m_isClosed)
+	{
+		if (m_remoteDlg.isFull() == false)
+		{
+			int ret = SendCommandPack(6);
+			if (ret == 6)
+			{
+				if (GetImage(m_remoteDlg.getImage()) == 0)
+				{
+					m_remoteDlg.SetImageStatus(true);
+				}
+				else
+				{
+					TRACE("获取图像失败ret= %d \r\n", ret);
+				}
+			}
+		}
+		Sleep(1);
+	}
+}
+
+void CClientController::threadWatchScreen(void* arg)
+{
+	CClientController* thiz = (CClientController*)arg;
+	thiz->threadWatchScreen();
+	_endthread();
+}
+
+void CClientController::threadDownlownFile()
+{
+	FILE* pFile = fopen(m_strLocal, "wb+");
+	if (pFile == NULL)
+	{
+		AfxMessageBox("本地没有权限保存该文件|文件无法创建");
+		m_statusDlg.ShowWindow(SW_HIDE);
+		m_remoteDlg.EndWaitCursor(); //隐藏等待光标
+		return;
+	}
+	CClientSocket* pClient = CClientSocket::GetInstance();
+	do
+	{
+		int ret = SendCommandPack(4, false, (BYTE*)(LPCTSTR)m_strRemote, m_strRemote.GetLength());
+		long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
+		if (nLength == 0)
+		{
+			AfxMessageBox("文件长度为0或无法下载");
+			return;
+		}
+		CClientSocket* pClient = CClientSocket::GetInstance();
+		long long count = 0;
+		while (count < nLength)
+		{
+			ret = pClient->DealCommand();
+			if (ret < 0)
+			{
+				AfxMessageBox(_T("传输失败"));
+				TRACE("传输失败 ret=%d\r\n", ret);
+				break;
+			}
+			fwrite(pClient->GetPacket().strData.c_str(), 1, pClient->GetPacket().strData.size(), pFile);
+			count += pClient->GetPacket().strData.size();
+		}
+	}
+	while (false);
+	fclose(pFile);
+	pClient->CloseSocket();
+	m_statusDlg.ShowWindow(SW_HIDE);
+	m_remoteDlg.EndWaitCursor(); //隐藏等待光标
+	m_remoteDlg.MessageBox(_T("下载完成"),_T("完成"));
+}
+
+void CClientController::threadEntryForDownFile(void* arg)
+{
+	CClientController* thiz = (CClientController*)arg;
+	thiz->threadDownlownFile();
+	_endthread();
+}
+
 unsigned __stdcall CClientController::threadEntry(void* arg)
 {
 	CClientController* thiz = (CClientController*)arg;
@@ -97,12 +178,16 @@ void CClientController::threadFunc()
 
 LRESULT CClientController::OnSendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
-	return LRESULT();
+	CClientSocket* pClient = CClientSocket::GetInstance();
+	CPacket* pPack = (CPacket*)wParam;
+	return pClient->Send(*pPack);
 }
 
 LRESULT CClientController::OnSendData(UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
-	return LRESULT();
+	CClientSocket* pClient = CClientSocket::GetInstance();
+	char* pBuffer = (char*)wParam;
+	return pClient->Send(pBuffer, int(lParam));
 }
 
 LRESULT CClientController::OnShowSTtatus(UINT nMsg, WPARAM wParam, LPARAM lParam)
