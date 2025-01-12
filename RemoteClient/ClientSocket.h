@@ -1,5 +1,8 @@
 #pragma once
 #include "pch.h"
+
+#include <list>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -14,7 +17,7 @@ public:
 	{
 	}
 
-	CPacket(WORD nCmd, const BYTE* pDData, size_t nSize)
+	CPacket(WORD nCmd, const BYTE* pDData, size_t nSize,HANDLE hEvent)
 	{
 		sHead = 0xFEFF;
 		nLength = nSize + 4; //包长
@@ -33,6 +36,7 @@ public:
 		{
 			sSUM += BYTE(strData[i]) & 0xFF;
 		}
+		this->hEvent = hEvent;
 	}
 
 	CPacket(const CPacket& packet)
@@ -42,9 +46,10 @@ public:
 		sCmd = packet.sCmd;
 		strData = packet.strData;
 		sSUM = packet.sSUM;
+		hEvent = packet.hEvent;
 	}
 
-	CPacket(const BYTE* pData, size_t& nSize)
+	CPacket(const BYTE* pData, size_t& nSize):hEvent(INVALID_HANDLE_VALUE)
 	{
 		size_t i = 0;
 		for (; i < nSize; i++)
@@ -112,6 +117,7 @@ public:
 		sCmd = packet.sCmd;
 		strData = packet.strData;
 		sSUM = packet.sSUM;
+		hEvent=packet.hEvent;
 		return *this;
 	}
 
@@ -142,7 +148,7 @@ public:
 	WORD sCmd; //命令
 	std::string strData; //包数据
 	WORD sSUM; //校验和
-	// std::string strOut; //整个包的数据
+	HANDLE hEvent; //事件句柄
 };
 #pragma pack(pop)
 
@@ -248,7 +254,7 @@ public:
 			return -1;
 		}
 		// char buffer[1024] = ""; //缓冲区
-		char* buffer = m_buffer.data();//TODO:多线程问题
+		char* buffer = m_buffer.data(); //TODO:多线程问题
 		//
 		static size_t index = 0;
 		while (1)
@@ -329,6 +335,9 @@ public:
 	}
 
 private:
+	std::list<CPacket> m_listSend;
+	std::map<HANDLE, std::list<CPacket>> m_mapAck;
+
 	int m_nIP; //ip地址
 	int m_nPort; //端口
 	std::vector<char> m_buffer; //缓冲区
@@ -387,5 +396,8 @@ private:
 			CClientSocket::DestroyInstance(); //调用DestroyInstance
 		}
 	}; //静态变量初始化
-	static Chelper m_helper; //静态变量
+	static Chelper m_helper;
+	static void threadEntry(void* arg);
+	void threadFunc();
+	//静态变量
 };

@@ -57,7 +57,9 @@ int CClientController::SendCommandPack(int nCmd, bool bAutoClose, BYTE* pData, s
 {
 	CClientSocket* pClient = CClientSocket::GetInstance();
 	if (pClient->InitSocket() == false)return false;
-	pClient->Send(CPacket(nCmd, pData, nLength));
+	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); //创建事件
+	//TODO:应该加入队列处理
+	pClient->Send(CPacket(nCmd, pData, nLength, hEvent));
 	int cmd = DealCommand();
 	TRACE("ack:%d \r\n", cmd);
 	if (bAutoClose)
