@@ -50,17 +50,7 @@ public:
 	// 1 查看磁盘分区 2 查看指定目录下的文件 3 打开文件 4 下载文件 5 鼠标操作 6 发送屏幕内容 7 锁机 8 解锁 9 删除文件 1981 测试连接
 	//return :命令号 小于0则失败
 	// 实现
-	int SendCommandPack(int nCmd, bool bAutoClose = true, BYTE* pData = NULL, size_t nLength = 0)
-	{
-		CClientSocket* pClient = CClientSocket::GetInstance();
-		if (pClient->InitSocket() == false)return false;
-		pClient->Send(CPacket(nCmd, pData, nLength));
-		int cmd = DealCommand();
-		TRACE("ack:%d \r\n", cmd);
-		if (bAutoClose)
-			CloseSocket();
-		return cmd;
-	}
+	int SendCommandPack(int nCmd, bool bAutoClose = true, BYTE* pData = NULL, size_t nLength = 0);
 
 	int GetImage(CImage& image)
 	{
@@ -68,37 +58,14 @@ public:
 		return CMyTool::Byte2Image(image, pClient->GetPacket().strData);
 	}
 
-	int DownloadFile(CString strPath)
-	{
-		CFileDialog dlg(FALSE, "*",
-		                strPath,
-		                OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
-		                NULL, &m_remoteDlg);
-		if (dlg.DoModal() == IDOK)
-		{
-			m_strRemote = strPath;
-			m_strLocal = dlg.GetPathName();
-			m_hThreadDownload = (HANDLE)_beginthread(&CClientController::threadEntryForDownFile, 0, this);
-			if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT)
-			{
-				return -1;
-			}
-			m_remoteDlg.BeginWaitCursor();
-			m_statusDlg.m_info.SetWindowText("正在下载文件，请稍后...");
-			m_statusDlg.ShowWindow(SW_SHOW); //显示状态对话框
-			m_statusDlg.CenterWindow(&m_remoteDlg); //居中显示
-			m_statusDlg.SetActiveWindow(); //激活状态对话框
-		}
+	int DownloadFile(CString strPath);
 
-
-		return 0;
-	}
 	void StartWatchScreen()
 	{
 		m_isClosed=false;
-		CWatchDialog dlg(&m_remoteDlg);
+		// m_watchDLg.SetParent(&m_remoteDlg);
 		m_hThreadWatch=(HANDLE)_beginthread(&CClientController::threadWatchScreen,0,this);
-		dlg.DoModal();
+		m_watchDLg.DoModal();
 		m_isClosed=true;
 		WaitForSingleObject(m_hThreadWatch,500);
 	}
@@ -134,6 +101,7 @@ protected:
 		{
 			delete m_instance;
 			m_instance = NULL;
+			TRACE("m_instance delete\r\n");
 		}
 	}
 
@@ -189,7 +157,7 @@ private:
 	public:
 		Chelper()
 		{
-			CClientController::getInstance(); //调用GetInstance
+			// CClientController::getInstance(); //调用GetInstance
 		}
 
 		~Chelper()

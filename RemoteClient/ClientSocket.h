@@ -248,7 +248,7 @@ public:
 			return -1;
 		}
 		// char buffer[1024] = ""; //缓冲区
-		char* buffer = m_buffer.data();
+		char* buffer = m_buffer.data();//TODO:多线程问题
 		//
 		static size_t index = 0;
 		while (1)
@@ -370,6 +370,7 @@ private:
 		{
 			delete m_pInstance;
 			m_pInstance = NULL;
+			TRACE("socket delete\r\n");
 		}
 	} //销毁单例
 

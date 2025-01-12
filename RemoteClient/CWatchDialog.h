@@ -19,7 +19,16 @@ public:
 public:
 	int m_nObjWidth;
 	int m_nObjHeight;
+	void SetImageStatus(bool isFull = false) //设置图片是否有数据	
+	{
+		m_isFull = isFull;
+	}
+	bool isFull() const
+	{
+		return m_isFull;
+	}
 protected:
+	bool m_isFull; //缓存是否有数据，true表示有数据,false表示无数据
 	virtual void DoDataExchange(CDataExchange* pDX); // DDX/DDV 支持
 
 	DECLARE_MESSAGE_MAP()

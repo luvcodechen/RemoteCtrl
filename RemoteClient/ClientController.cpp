@@ -3,6 +3,7 @@
 
 CClientController* CClientController::m_instance = NULL;
 std::map<UINT, CClientController::MSGFUNC> CClientController::m_mapFunc;
+CClientController::Chelper CClientController::m_helper;
 
 CClientController* CClientController::getInstance()
 {
@@ -52,19 +53,57 @@ LRESULT CClientController::SendMessage(MSG msg)
 	return info.result; //返回结果
 }
 
+int CClientController::SendCommandPack(int nCmd, bool bAutoClose, BYTE* pData, size_t nLength)
+{
+	CClientSocket* pClient = CClientSocket::GetInstance();
+	if (pClient->InitSocket() == false)return false;
+	pClient->Send(CPacket(nCmd, pData, nLength));
+	int cmd = DealCommand();
+	TRACE("ack:%d \r\n", cmd);
+	if (bAutoClose)
+		CloseSocket();
+	return cmd;
+}
+
+int CClientController::DownloadFile(CString strPath)
+{
+	CFileDialog dlg(FALSE, "*",
+	                strPath,
+	                OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+	                NULL, &m_remoteDlg);
+	if (dlg.DoModal() == IDOK)
+	{
+		m_strRemote = strPath;
+		m_strLocal = dlg.GetPathName();
+		m_hThreadDownload = (HANDLE)_beginthread(&CClientController::threadEntryForDownFile, 0, this);
+		if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT)
+		{
+			return -1;
+		}
+		m_remoteDlg.BeginWaitCursor();
+		m_statusDlg.m_info.SetWindowText("正在下载文件，请稍后...");
+		m_statusDlg.ShowWindow(SW_SHOW); //显示状态对话框
+		m_statusDlg.CenterWindow(&m_remoteDlg); //居中显示
+		m_statusDlg.SetActiveWindow(); //激活状态对话框
+	}
+
+
+	return 0;
+}
+
 void CClientController::threadWatchScreen()
 {
 	Sleep(50);
 	while (!m_isClosed)
 	{
-		if (m_remoteDlg.isFull() == false)
+		if (m_watchDLg.isFull() == false)
 		{
 			int ret = SendCommandPack(6);
 			if (ret == 6)
 			{
 				if (GetImage(m_remoteDlg.getImage()) == 0)
 				{
-					m_remoteDlg.SetImageStatus(true);
+					m_watchDLg.SetImageStatus(true);
 				}
 				else
 				{
