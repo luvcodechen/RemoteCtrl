@@ -5,6 +5,17 @@ CClientSocket* CClientSocket::m_pInstance = NULL; //
 CClientSocket* pclient = CClientSocket::GetInstance(); //
 CClientSocket::Chelper CClientSocket::m_helper; // = CClientSocket::Chelper();
 
+bool CClientSocket::Send(const CPacket& pack)
+{
+	if (m_socket == -1)
+	{
+		return false;
+	}
+	std::string strOut;
+	pack.Data(strOut);
+	return send(m_socket, strOut.c_str(), strOut.size(), 0) > 0;
+}
+
 void CClientSocket::threadEntry(void* arg)
 {
 	CClientSocket* thiz = (CClientSocket*)arg;
@@ -13,10 +24,6 @@ void CClientSocket::threadEntry(void* arg)
 
 void CClientSocket::threadFunc()
 {
-	if (InitSocket() == false)
-	{
-		return;
-	}
 	std::string strBuffer;
 	strBuffer.resize(BUFFER_SIZE);
 	char* pBuffer = (char*)strBuffer.c_str();
@@ -25,13 +32,14 @@ void CClientSocket::threadFunc()
 	{
 		if (m_listSend.size() > 0)
 		{
+			TRACE("m_listSend.size:%d\r\n", m_listSend.size());
 			CPacket& head = m_listSend.front();
 			if (Send(head) == false)
 			{
 				TRACE("∑¢ÀÕ ß∞‹\r\n");
 				continue;
 			}
-			auto pr = m_mapAck.insert({ head.hEvent,std::list<CPacket>() });
+			auto pr = m_mapAck.insert({head.hEvent, std::list<CPacket>()});
 			std::list<CPacket> lstRecv;
 			int length = recv(m_socket, pBuffer + index, BUFFER_SIZE - index, 0);
 			if (length > 0 || index > 0)
@@ -55,4 +63,5 @@ void CClientSocket::threadFunc()
 			m_listSend.pop_front(); //
 		}
 	}
+	CloseSocket();
 }

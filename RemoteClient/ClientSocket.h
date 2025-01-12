@@ -17,7 +17,7 @@ public:
 	{
 	}
 
-	CPacket(WORD nCmd, const BYTE* pDData, size_t nSize,HANDLE hEvent)
+	CPacket(WORD nCmd, const BYTE* pDData, size_t nSize, HANDLE hEvent)
 	{
 		sHead = 0xFEFF;
 		nLength = nSize + 4; //包长
@@ -49,7 +49,7 @@ public:
 		hEvent = packet.hEvent;
 	}
 
-	CPacket(const BYTE* pData, size_t& nSize):hEvent(INVALID_HANDLE_VALUE)
+	CPacket(const BYTE* pData, size_t& nSize): hEvent(INVALID_HANDLE_VALUE)
 	{
 		size_t i = 0;
 		for (; i < nSize; i++)
@@ -117,7 +117,7 @@ public:
 		sCmd = packet.sCmd;
 		strData = packet.strData;
 		sSUM = packet.sSUM;
-		hEvent=packet.hEvent;
+		hEvent = packet.hEvent;
 		return *this;
 	}
 
@@ -277,24 +277,29 @@ public:
 		return -1;
 	}
 
-	bool Send(const char* buffer, int len)
-	{
-		if (send(m_socket, buffer, len, 0) == -1)
-		{
-			return false;
-		}
-		return true;
-	}
 
-	bool Send(const CPacket& pack)
+	bool SendPacket(const CPacket& packet, std::list<CPacket>& lstPacks)
 	{
-		if (m_socket == -1)
+		if(m_socket==INVALID_SOCKET)
 		{
-			return false;
+			if (InitSocket() == false)return false;
+			_beginthread(&CClientSocket::threadEntry, 0, this);
+
 		}
-		std::string strOut;
-		pack.Data(strOut);
-		return send(m_socket, strOut.c_str(), strOut.size(), 0) > 0;
+		m_listSend.push_back(packet);
+		WaitForSingleObject(packet.hEvent,INFINITE);
+		std::map<HANDLE, std::list<CPacket>>::iterator it = m_mapAck.find(packet.hEvent); //查找事件
+		if (it != m_mapAck.end())
+		{
+			std::list<CPacket>::iterator i;
+			for (i = it->second.begin(); i != it->second.end(); i++)
+			{
+				lstPacks.push_back(*i);//
+			}
+			m_mapAck.erase(it);//删除事件
+			return true;
+		}
+		return false;
 	}
 
 	bool GetFilePath(std::string& strPath) const
@@ -346,7 +351,7 @@ private:
 	CPacket m_packet; //数据包
 	CClientSocket& operator=(const CClientSocket&); //禁止赋值
 	CClientSocket(const CClientSocket&); //禁止拷贝
-	CClientSocket(): m_nIP(INADDR_ANY), m_nPort(0) //构造函数
+	CClientSocket(): m_nIP(INADDR_ANY), m_nPort(0),m_socket(INVALID_SOCKET) //构造函数
 	{
 		if (InitSocketEnv() == FALSE)
 		{
@@ -362,6 +367,18 @@ private:
 		closesocket(m_socket); //关闭套接字
 		WSACleanup(); //清理套接字
 	} //析构函数
+
+
+	bool Send(const char* buffer, int len)
+	{
+		if (send(m_socket, buffer, len, 0) == -1)
+		{
+			return false;
+		}
+		return true;
+	}
+
+	bool Send(const CPacket& pack);
 
 	BOOL InitSocketEnv()
 	{

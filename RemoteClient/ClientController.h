@@ -7,8 +7,6 @@
 #include "resource.h"
 #include "ClientSocket.h"
 #include "MyTool.h"
-#define WM_SEND_PACK (WM_USER+1)//发送包数据
-#define WM_END_DATA (WM_USER+2) //发送数据
 #define WM_SHOW_STATUS (WM_USER+3) //显示状态
 #define WM_SHOW_WATCH (WM_USER+4) //显示监控
 #define WM_SEND_MESSAGE (WM_USER+0x1000) //自定义消息处理
@@ -40,17 +38,11 @@ public:
 		CClientSocket::GetInstance()->CloseSocket();
 	}
 
-	bool SendPacket(const CPacket& pack)
-	{
-		CClientSocket* pClient = CClientSocket::GetInstance();
-		if (pClient->InitSocket() == false)return false;
-		pClient->Send(pack);
-	}
 
 	// 1 查看磁盘分区 2 查看指定目录下的文件 3 打开文件 4 下载文件 5 鼠标操作 6 发送屏幕内容 7 锁机 8 解锁 9 删除文件 1981 测试连接
 	//return :命令号 小于0则失败
 	// 实现
-	int SendCommandPack(int nCmd, bool bAutoClose = true, BYTE* pData = NULL, size_t nLength = 0);
+	int SendCommandPack(int nCmd, bool bAutoClose = true, BYTE* pData = NULL, size_t nLength = 0,std::list<CPacket>*plstPacks=NULL);
 
 	int GetImage(CImage& image)
 	{
@@ -105,8 +97,6 @@ protected:
 		}
 	}
 
-	LRESULT OnSendPack(UINT nMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT OnSendData(UINT nMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnShowSTtatus(UINT nMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnShowWatcher(UINT nMsg, WPARAM wParam, LPARAM lParam);
 
