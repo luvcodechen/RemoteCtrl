@@ -19,6 +19,11 @@ public:
 public:
 	int m_nObjWidth;
 	int m_nObjHeight;
+	CImage m_image;
+	CImage& getImage()
+	{
+		return m_image;
+	}
 	void SetImageStatus(bool isFull = false) //设置图片是否有数据	
 	{
 		m_isFull = isFull;

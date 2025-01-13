@@ -48,6 +48,7 @@ LRESULT CClientController::SendMessage(MSG msg)
 	MSGINFO info(msg);
 	PostThreadMessage(m_nThreadID, WM_SEND_MESSAGE, (WPARAM)&info, LPARAM(hEvent));
 	WaitForSingleObject(hEvent, INFINITE); //等待事件
+	CloseHandle(hEvent); //关闭事件
 	return info.result; //返回结果
 }
 
@@ -56,13 +57,13 @@ int CClientController::SendCommandPack(int nCmd, bool bAutoClose, BYTE* pData, s
 {
 	CClientSocket* pClient = CClientSocket::GetInstance();
 	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); //创建事件
-	//TODO:应该加入队列处理
 	std::list<CPacket> lstPacks; //应答结果包
 	if (plistPacks == NULL)
 	{
 		plistPacks = &lstPacks;
 	}
-	pClient->SendPacket(CPacket(nCmd, pData, nLength, hEvent), *plistPacks);
+	pClient->SendPacket(CPacket(nCmd, pData, nLength, hEvent), *plistPacks, bAutoClose);
+	CloseHandle(hEvent); //关闭事件
 	if (plistPacks->size() > 0)
 	{
 		return plistPacks->front().sCmd;
@@ -108,9 +109,10 @@ void CClientController::threadWatchScreen()
 			int ret = SendCommandPack(6, true,NULL, 0, &lstPacks);
 			if (ret == 6)
 			{
-				if (CMyTool::Byte2Image(m_remoteDlg.getImage(), lstPacks.front().strData) == 0)
+				if (CMyTool::Byte2Image(m_watchDLg.getImage(), lstPacks.front().strData) == 0)
 				{
 					m_watchDLg.SetImageStatus(true);
+					TRACE("获取图像成功\r\n");
 				}
 				else
 				{

@@ -278,29 +278,8 @@ public:
 	}
 
 
-	bool SendPacket(const CPacket& packet, std::list<CPacket>& lstPacks)
-	{
-		if(m_socket==INVALID_SOCKET)
-		{
-			if (InitSocket() == false)return false;
-			_beginthread(&CClientSocket::threadEntry, 0, this);
+	bool SendPacket(const CPacket& packet, std::list<CPacket>& lstPacks, bool isAutoClosed = true);
 
-		}
-		m_listSend.push_back(packet);
-		WaitForSingleObject(packet.hEvent,INFINITE);
-		std::map<HANDLE, std::list<CPacket>>::iterator it = m_mapAck.find(packet.hEvent); //查找事件
-		if (it != m_mapAck.end())
-		{
-			std::list<CPacket>::iterator i;
-			for (i = it->second.begin(); i != it->second.end(); i++)
-			{
-				lstPacks.push_back(*i);//
-			}
-			m_mapAck.erase(it);//删除事件
-			return true;
-		}
-		return false;
-	}
 
 	bool GetFilePath(std::string& strPath) const
 	{
@@ -340,9 +319,10 @@ public:
 	}
 
 private:
+	bool m_bAutoClose;
 	std::list<CPacket> m_listSend;
-	std::map<HANDLE, std::list<CPacket>> m_mapAck;
-
+	std::map<HANDLE, std::list<CPacket>&> m_mapAck;
+	std::map<HANDLE, bool>m_mapAutoClosed;
 	int m_nIP; //ip地址
 	int m_nPort; //端口
 	std::vector<char> m_buffer; //缓冲区
@@ -351,7 +331,7 @@ private:
 	CPacket m_packet; //数据包
 	CClientSocket& operator=(const CClientSocket&); //禁止赋值
 	CClientSocket(const CClientSocket&); //禁止拷贝
-	CClientSocket(): m_nIP(INADDR_ANY), m_nPort(0),m_socket(INVALID_SOCKET) //构造函数
+	CClientSocket(): m_nIP(INADDR_ANY), m_nPort(0),m_socket(INVALID_SOCKET),m_bAutoClose(true) //构造函数
 	{
 		if (InitSocketEnv() == FALSE)
 		{

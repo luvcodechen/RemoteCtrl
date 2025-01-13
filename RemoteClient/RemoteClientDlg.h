@@ -20,15 +20,6 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX); // DDX/DDV 支持
 public:
-
-
-	CImage& getImage()
-	{
-		return m_image;
-	}
-
-
-
 private:
 	CImage m_image; //缓存图片
 

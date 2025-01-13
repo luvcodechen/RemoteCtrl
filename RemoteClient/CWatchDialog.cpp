@@ -86,27 +86,20 @@ void CWatchDialog::OnTimer(UINT_PTR nIDEvent)
 {
 	if (nIDEvent == 0) //定时器
 	{
-		CClientController* pParent = CClientController::getInstance();
+		// CClientController* pParent = CClientController::getInstance();
 		if (m_isFull)
 		{
 			CRect rect;
 			// pParent->getImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0,SRCCOPY); //将图片显示到控件上
 			m_picture.GetWindowRect(rect); //获取控件大小
-			CImage image;
-			pParent->GetImage(image);
-			if (m_nObjWidth == -1)
-			{
-				m_nObjWidth = image.GetWidth(); //获取图片宽度
-			}
-			if (m_nObjHeight == -1)
-			{
-				m_nObjHeight = image.GetHeight(); //获取图片高度
-			}
-			image.StretchBlt(
+			m_nObjWidth = m_image.GetWidth(); //获取图片宽度
+			m_nObjHeight = m_image.GetHeight(); //获取图片高度
+			m_image.StretchBlt(
 				m_picture.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(),SRCCOPY); //拉伸图片
 			m_picture.InvalidateRect(NULL); //刷新控件
-			image.Destroy(); //销毁图片
+			m_image.Destroy(); //销毁图片
 			m_isFull = false;
+			TRACE("更新图片完成\r\n");
 		}
 	}
 	CDialog::OnTimer(nIDEvent);

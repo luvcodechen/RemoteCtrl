@@ -185,22 +185,22 @@ HCURSOR CRemoteClientDlg::OnQueryDragIcon()
 
 void CRemoteClientDlg::OnBnClickedBtnTest()
 {
-	//TODO: 在此添加控件通知处理程序代码
 	CClientController::getInstance()->SendCommandPack(1981);
 }
 
 
 void CRemoteClientDlg::OnBnClickedBtnFileinfo()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	int ret = CClientController::getInstance()->SendCommandPack(1);
-	if (ret == -1)
+	std::list<CPacket> lstPacks;
+	int ret = CClientController::getInstance()->SendCommandPack(1, true,NULL, 0, &lstPacks);
+	if (ret == -1 || lstPacks.size() <= 0)
 	{
 		AfxMessageBox(_T("命令处理失败"));
 		return;
 	}
-	CClientSocket* pClient = CClientSocket::GetInstance();
-	std::string drivers = pClient->GetPacket().strData;
+	CPacket head = lstPacks.front();
+	
+	std::string drivers = head.strData;
 	std::string driver;
 	m_tree.DeleteAllItems();
 	for (size_t i = 0; i < drivers.size(); i++)
@@ -216,10 +216,6 @@ void CRemoteClientDlg::OnBnClickedBtnFileinfo()
 		driver += drivers[i];
 	}
 }
-
-
-
-
 
 
 void CRemoteClientDlg::LoadFIleCurrent()
@@ -243,7 +239,7 @@ void CRemoteClientDlg::LoadFIleCurrent()
 		if (cmd < 0)break;
 		pfileinfo = (PFILEINFO)pClient->GetPacket().strData.c_str(); //
 	}
-	pClient->CloseSocket();
+	// pClient->CloseSocket();
 }
 
 void CRemoteClientDlg::LoadFileInfo()
@@ -258,36 +254,60 @@ void CRemoteClientDlg::LoadFileInfo()
 	DeleteTreeChildItem(hTreeSelected); //删除子项
 	m_List.DeleteAllItems(); //删除列表项
 	CString strPath = GetPath(hTreeSelected);
-	int cmd = CClientController::getInstance()->SendCommandPack(2, false, (BYTE*)(LPCTSTR)strPath, strPath.GetLength());
-	PFILEINFO pfileinfo = (PFILEINFO)CClientSocket::GetInstance()->GetPacket().strData.c_str();
-
-	while (pfileinfo->HasFile) //
+	std::list<CPacket>lstPacks;
+	int cmd = CClientController::getInstance()->SendCommandPack(2, false, (BYTE*)(LPCTSTR)strPath, strPath.GetLength(),&lstPacks);
+	PFILEINFO pfileinfo=NULL;
+	if(lstPacks.size()>0)
 	{
-		TRACE("[%s] isdir %d\r\n", pfileinfo->szFIleName, pfileinfo->IsDirectory); //输出文件信息
-		if (pfileinfo->IsDirectory) //是目录
+		std::list<CPacket>::iterator it = lstPacks.begin();
+		for(;it!=lstPacks.end();it++)
 		{
-			if (((CString)pfileinfo->szFIleName == ".") || ((CString)pfileinfo->szFIleName == "..")) //是当前目录或者上级目录
+			pfileinfo= (PFILEINFO)it->strData.c_str();
+			if(pfileinfo->HasFile==FALSE)continue;
+			if (pfileinfo->IsDirectory) //是目录
 			{
-				cmd = CClientController::getInstance()->DealCommand();
-				TRACE(" ask:%d \r\n", cmd);
-				if (cmd < 0)break;
-				pfileinfo = (PFILEINFO)CClientSocket::GetInstance()->GetPacket().strData.c_str(); //
-				continue;
+				if (((CString)pfileinfo->szFIleName == ".") || ((CString)pfileinfo->szFIleName == "..")) //是当前目录或者上级目录
+				{	
+					continue;
+				}
+				HTREEITEM htemp = m_tree.InsertItem(pfileinfo->szFIleName, hTreeSelected, TVI_LAST); //插入文件
+				m_tree.InsertItem(0, htemp, TVI_LAST); //插入子目录)
 			}
-			HTREEITEM htemp = m_tree.InsertItem(pfileinfo->szFIleName, hTreeSelected, TVI_LAST); //插入文件
-			m_tree.InsertItem(0, htemp, TVI_LAST); //插入子目录)
+			else
+			{
+				m_List.InsertItem(0, pfileinfo->szFIleName); //插入文件
+			}
 		}
-		else
-		{
-			m_List.InsertItem(0, pfileinfo->szFIleName); //插入文件
-		}
-
-		cmd = CClientController::getInstance()->DealCommand();
-		TRACE(" ask:%d \r\n", cmd);
-		if (cmd < 0)break;
-		pfileinfo = (PFILEINFO)CClientSocket::GetInstance()->GetPacket().strData.c_str(); //
 	}
-	CClientController::getInstance()->CloseSocket();
+	// PFILEINFO pfileinfo = (PFILEINFO)CClientSocket::GetInstance()->GetPacket().strData.c_str();
+
+	// while (pfileinfo->HasFile) //
+	// {
+	// 	TRACE("[%s] isdir %d\r\n", pfileinfo->szFIleName, pfileinfo->IsDirectory); //输出文件信息
+	// 	if (pfileinfo->IsDirectory) //是目录
+	// 	{
+	// 		if (((CString)pfileinfo->szFIleName == ".") || ((CString)pfileinfo->szFIleName == "..")) //是当前目录或者上级目录
+	// 		{
+	// 			cmd = CClientController::getInstance()->DealCommand();
+	// 			TRACE(" ask:%d \r\n", cmd);
+	// 			if (cmd < 0)break;
+	// 			pfileinfo = (PFILEINFO)CClientSocket::GetInstance()->GetPacket().strData.c_str(); //
+	// 			continue;
+	// 		}
+	// 		HTREEITEM htemp = m_tree.InsertItem(pfileinfo->szFIleName, hTreeSelected, TVI_LAST); //插入文件
+	// 		m_tree.InsertItem(0, htemp, TVI_LAST); //插入子目录)
+	// 	}
+	// 	else
+	// 	{
+	// 		m_List.InsertItem(0, pfileinfo->szFIleName); //插入文件
+	// 	}
+	//
+	// 	cmd = CClientController::getInstance()->DealCommand();
+	// 	TRACE(" ask:%d \r\n", cmd);
+	// 	if (cmd < 0)break;
+	// 	pfileinfo = (PFILEINFO)CClientSocket::GetInstance()->GetPacket().strData.c_str(); //
+	// }
+	// CClientController::getInstance()->CloseSocket();
 }
 
 CString CRemoteClientDlg::GetPath(HTREEITEM hTree)
@@ -394,7 +414,6 @@ void CRemoteClientDlg::OnOpenFile()
 		AfxMessageBox(_T("打开文件失败"));
 	}
 }
-
 
 
 void CRemoteClientDlg::OnBnClickedBtnStart()
