@@ -135,6 +135,7 @@ void CWatchDialog::OnLButtonDown(UINT nFlags, CPoint point)
 		event.nButton = 0; //左键
 		event.nAction = 2; //按下
 		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		TRACE("OnLButtonDown===========================================\r\n");
 	}
 	CDialog::OnLButtonDown(nFlags, point);
 }
@@ -233,6 +234,7 @@ void CWatchDialog::OnMouseMove(UINT nFlags, CPoint point)
 		event.nButton = 4; //没有按键 8
 		event.nAction = 4; //默认break 0
 		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		TRACE("mouse move move move move move move move ========================\r\n");
 	}
 	CDialog::OnMouseMove(nFlags, point);
 }
@@ -251,6 +253,7 @@ void CWatchDialog::OnStnClickedWatch()
 		event.nButton = 0; //左键
 		event.nAction = 0; //单机
 		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		TRACE("OnStnClickedWatch===========================================\r\n");
 	}
 }
 
