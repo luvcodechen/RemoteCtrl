@@ -52,7 +52,7 @@ CPoint CWatchDialog::UserPoint2RemoteScreenPoint(CPoint& point, bool isScreen)
 {
 	//800 450
 	CRect clientRect;
-	if (isScreen)
+	if (!isScreen)
 	{
 		// CStatic *pStatic = (CStatic*)GetDlgItem(IDC_WATCH);//获取控件指针
 		// if(pStatic)
@@ -62,9 +62,9 @@ CPoint CWatchDialog::UserPoint2RemoteScreenPoint(CPoint& point, bool isScreen)
 		// 	ScreenToClient(&point); //转换为相对坐标
 		// 	point.y-=rect.top;//减去标题栏高度
 		// }
-		ScreenToClient(&point); //转换为相对坐标
+		ClientToScreen(&point);//转换为屏幕坐标
 	}
-	// ScreenToClient(&point); //转换为相对坐标
+	m_picture.ScreenToClient(&point); //转换为相对坐标
 	TRACE("x %d y %d\r\n", point.x, point.y);
 	m_picture.GetWindowRect(clientRect); //获取控件的坐标
 	TRACE("width %d height %d\r\n", clientRect.Width(), clientRect.Height());

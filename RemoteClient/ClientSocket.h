@@ -7,7 +7,8 @@
 #include <vector>
 
 #include "framework.h"
-#include "mutex"	
+#include "mutex"
+#define WM_SEND_PACK (WM_USER+1)//发送数据包
 #pragma pack(push)
 #pragma pack(1)
 class CPacket
@@ -212,7 +213,7 @@ public:
 		return m_pInstance;
 	} //获取单例
 	BOOL InitSocket(); //初始化套接字
-	
+
 
 #define BUFFER_SIZE 10240000
 
@@ -288,12 +289,14 @@ public:
 	}
 
 private:
+	typedef void (CClientSocket::*MSGFUNC)(UINT nMsg, WPARAM wParam, LPARAM lParam);
+	std::map<UINT, MSGFUNC> m_mapFunc;
 	HANDLE m_hThread; //线程句柄
-	std::mutex m_lock;//互斥锁
+	std::mutex m_lock; //互斥锁
 	bool m_bAutoClose;
 	std::list<CPacket> m_listSend;
 	std::map<HANDLE, std::list<CPacket>&> m_mapAck;
-	std::map<HANDLE, bool>m_mapAutoClosed;
+	std::map<HANDLE, bool> m_mapAutoClosed;
 	int m_nIP; //ip地址
 	int m_nPort; //端口
 	std::vector<char> m_buffer; //缓冲区
@@ -302,7 +305,8 @@ private:
 	CPacket m_packet; //数据包
 	CClientSocket& operator=(const CClientSocket&); //禁止赋值
 	CClientSocket(const CClientSocket&); //禁止拷贝
-	CClientSocket(): m_nIP(INADDR_ANY), m_nPort(0),m_socket(INVALID_SOCKET),m_bAutoClose(true),m_hThread(INVALID_HANDLE_VALUE) //构造函数
+	CClientSocket(): m_nIP(INADDR_ANY), m_nPort(0), m_socket(INVALID_SOCKET), m_bAutoClose(true),
+	                 m_hThread(INVALID_HANDLE_VALUE) //构造函数
 	{
 		if (InitSocketEnv() == FALSE)
 		{
@@ -311,6 +315,19 @@ private:
 		}
 		m_buffer.resize(BUFFER_SIZE);
 		memset(m_buffer.data(), 0, BUFFER_SIZE);
+		struct
+		{
+			UINT message;
+			MSGFUNC func;
+		} funcs[]
+			{
+				{WM_SEND_PACK, &CClientSocket::SendPack},
+				{0,NULL}
+			};
+		for (int i = 0; funcs[i].func != NULL; i++)
+		{
+			m_mapFunc[funcs[i].message] = funcs[i].func;
+		}
 	} //构造函数
 
 	~CClientSocket()
@@ -319,6 +336,7 @@ private:
 		WSACleanup(); //清理套接字
 	} //析构函数
 
+	void SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam);
 
 	bool Send(const char* buffer, int len)
 	{
@@ -367,5 +385,7 @@ private:
 	static Chelper m_helper;
 	static void threadEntry(void* arg);
 	void threadFunc();
+
+	void threadFunc2();
 	//静态变量
 };
