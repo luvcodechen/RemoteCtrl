@@ -9,6 +9,7 @@
 #include "framework.h"
 #include "mutex"
 #define WM_SEND_PACK (WM_USER+1)//发送数据包
+#define WM_SEND_PACK_ACK (WM_USER+2)//发送数据包应答
 #pragma pack(push)
 #pragma pack(1)
 class CPacket
@@ -18,7 +19,7 @@ public:
 	{
 	}
 
-	CPacket(WORD nCmd, const BYTE* pDData, size_t nSize, HANDLE hEvent)
+	CPacket(WORD nCmd, const BYTE* pDData, size_t nSize)
 	{
 		sHead = 0xFEFF;
 		nLength = nSize + 4; //包长
@@ -37,7 +38,6 @@ public:
 		{
 			sSUM += BYTE(strData[i]) & 0xFF;
 		}
-		this->hEvent = hEvent;
 	}
 
 	CPacket(const CPacket& packet)
@@ -47,10 +47,9 @@ public:
 		sCmd = packet.sCmd;
 		strData = packet.strData;
 		sSUM = packet.sSUM;
-		hEvent = packet.hEvent;
 	}
 
-	CPacket(const BYTE* pData, size_t& nSize): hEvent(INVALID_HANDLE_VALUE)
+	CPacket(const BYTE* pData, size_t& nSize)
 	{
 		size_t i = 0;
 		for (; i < nSize; i++)
@@ -118,7 +117,6 @@ public:
 		sCmd = packet.sCmd;
 		strData = packet.strData;
 		sSUM = packet.sSUM;
-		hEvent = packet.hEvent;
 		return *this;
 	}
 
@@ -149,7 +147,6 @@ public:
 	WORD sCmd; //命令
 	std::string strData; //包数据
 	WORD sSUM; //校验和
-	HANDLE hEvent; //事件句柄
 };
 #pragma pack(pop)
 
@@ -201,6 +198,41 @@ typedef struct file_info
 	char szFIleName[256];
 } FILEINFO, *PFILEINFO;
 
+enum
+{
+	CSM_AUTOCLOSE = 1,
+	//CSM=client socket mode 自动关闭
+};
+
+typedef struct PacketData
+{
+	std::string strData;
+	UINT nMOde;
+
+	PacketData(const char* pData, size_t nLen, UINT mode)
+	{
+		strData.resize(nLen);
+		memcpy((char*)strData.c_str(), pData, nLen);
+		nMOde = mode;
+	}
+
+	PacketData(const PacketData& data)
+	{
+		strData = data.strData;
+		nMOde = data.nMOde;
+	}
+
+	PacketData& operator=(const PacketData& data)
+	{
+		if (this != &data)
+		{
+			strData = data.strData;
+			nMOde = data.nMOde;
+		}
+		return *this;
+	}
+} PACKET_DATA;
+
 class CClientSocket
 {
 public:
@@ -247,8 +279,8 @@ public:
 		return -1;
 	}
 
-
-	bool SendPacket(const CPacket& packet, std::list<CPacket>& lstPacks, bool isAutoClosed = true);
+	//发送数据包
+	bool SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed = true);
 
 
 	bool GetFilePath(std::string& strPath) const
@@ -289,6 +321,7 @@ public:
 	}
 
 private:
+	UINT m_nThreadId;
 	typedef void (CClientSocket::*MSGFUNC)(UINT nMsg, WPARAM wParam, LPARAM lParam);
 	std::map<UINT, MSGFUNC> m_mapFunc;
 	HANDLE m_hThread; //线程句柄
@@ -383,8 +416,8 @@ private:
 		}
 	}; //静态变量初始化
 	static Chelper m_helper;
-	static void threadEntry(void* arg);
-	void threadFunc();
+	static unsigned __stdcall threadEntry(void* arg);
+	// void threadFunc();
 
 	void threadFunc2();
 	//静态变量

@@ -116,7 +116,7 @@ void CWatchDialog::OnLButtonDblClk(UINT nFlags, CPoint point)
 		event.ptXY = remotePoint; //鼠标坐标
 		event.nButton = 0; //左键
 		event.nAction = 1; //双击
-		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		CClientController::getInstance()->SendCommandPack(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnLButtonDblClk(nFlags, point);
 }
@@ -134,7 +134,7 @@ void CWatchDialog::OnLButtonDown(UINT nFlags, CPoint point)
 		event.ptXY = remotePoint; //鼠标坐标
 		event.nButton = 0; //左键
 		event.nAction = 2; //按下
-		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		CClientController::getInstance()->SendCommandPack(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 		TRACE("OnLButtonDown===========================================\r\n");
 	}
 	CDialog::OnLButtonDown(nFlags, point);
@@ -151,7 +151,7 @@ void CWatchDialog::OnLButtonUp(UINT nFlags, CPoint point)
 		event.ptXY = remotePoint; //鼠标坐标
 		event.nButton = 0; //左键
 		event.nAction = 3; //弹起
-		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		CClientController::getInstance()->SendCommandPack(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 
 	CDialog::OnLButtonUp(nFlags, point);
@@ -167,7 +167,7 @@ void CWatchDialog::OnRButtonDblClk(UINT nFlags, CPoint point)
 		event.ptXY = remotePoint; //鼠标坐标
 		event.nButton = 1; //右键
 		event.nAction = 1; //双击
-		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 5, true, (BYTE*)&event, sizeof(event));
 		TRACE("OnRButtonDown===========================================\r\n");
 	}
 	CDialog::OnRButtonDblClk(nFlags, point);
@@ -184,7 +184,7 @@ void CWatchDialog::OnRButtonDown(UINT nFlags, CPoint point)
 		event.ptXY = remotePoint; //鼠标坐标
 		event.nButton = 1; //右键
 		event.nAction = 3; //按下
-		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnRButtonDown(nFlags, point);
 }
@@ -200,7 +200,7 @@ void CWatchDialog::OnRButtonUp(UINT nFlags, CPoint point)
 		event.ptXY = remotePoint; //鼠标坐标
 		event.nButton = 1; //右键
 		event.nAction = 3; //弹起
-		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnRButtonUp(nFlags, point);
 }
@@ -233,7 +233,7 @@ void CWatchDialog::OnMouseMove(UINT nFlags, CPoint point)
 		event.ptXY = remotePoint; //鼠标坐标
 		event.nButton = 4; //没有按键 8
 		event.nAction = 4; //默认break 0
-		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 5, true, (BYTE*)&event, sizeof(event));
 		TRACE("mouse move move move move move move move ========================\r\n");
 	}
 	CDialog::OnMouseMove(nFlags, point);
@@ -252,7 +252,7 @@ void CWatchDialog::OnStnClickedWatch()
 		event.ptXY = remotePoint; //鼠标坐标
 		event.nButton = 0; //左键
 		event.nAction = 0; //单机
-		CClientController::getInstance()->SendCommandPack(5, true, (BYTE*)&event, sizeof(event));
+		CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 5, true, (BYTE*)&event, sizeof(event));
 		TRACE("OnStnClickedWatch===========================================\r\n");
 	}
 }
@@ -266,11 +266,11 @@ void CWatchDialog::OnOK()
 
 void CWatchDialog::OnBnClickedBtnLock()
 {
-	CClientController::getInstance()->SendCommandPack(7);
+	CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 7);
 }
 
 
 void CWatchDialog::OnBnClickedBtnUnlock()
 {
-	CClientController::getInstance()->SendCommandPack(8);
+	CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 8);
 }
