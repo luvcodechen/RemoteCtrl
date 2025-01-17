@@ -45,18 +45,19 @@ public:
 	//return :状态 
 	// 实现
 	bool SendCommandPack(
-		HWND hWnd,// 数据包收到后，需要应答的窗口句柄
+		HWND hWnd, // 数据包收到后，需要应答的窗口句柄
 		int nCmd,
 		bool bAutoClose = true,
 		BYTE* pData = NULL,
-		size_t nLength = 0);
+		size_t nLength = 0,
+		WPARAM wParam=0);
 
 	int GetImage(CImage& image)
 	{
 		CClientSocket* pClient = CClientSocket::GetInstance();
 		return CMyTool::Byte2Image(image, pClient->GetPacket().strData);
 	}
-
+	void DownloadEnd();
 	int DownloadFile(CString strPath);
 
 	void StartWatchScreen()

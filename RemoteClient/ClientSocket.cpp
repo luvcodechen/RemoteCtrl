@@ -39,7 +39,7 @@ BOOL CClientSocket::InitSocket()
 	return TRUE;
 }
 
-bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed)
+bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed,WPARAM wParam)
 {
 	if (m_hThread == INVALID_HANDLE_VALUE)
 	{
@@ -48,7 +48,7 @@ bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed
 	UINT nMode = isAutoClosed ? CSM_AUTOCLOSE : 0;
 	std::string strOut;
 	pack.Data(strOut);
-	return PostThreadMessage(m_nThreadId,WM_SEND_PACK, (WPARAM)new PACKET_DATA(strOut.c_str(), strOut.size(), nMode),
+	return PostThreadMessage(m_nThreadId,WM_SEND_PACK, (WPARAM)new PACKET_DATA(strOut.c_str(), strOut.size(), nMode,wParam),
 	                         (LPARAM)hWnd);
 }
 
@@ -87,7 +87,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 	PACKET_DATA data = *(PACKET_DATA*)wParam;
 	delete (PACKET_DATA*)wParam; //释放内存
 	HWND hWnd = (HWND)lParam; //获取窗口句柄
-	if (InitSocket() == true)
+	if (InitSocket() == TRUE)
 	{
 		int ret = send(m_socket, (char*)data.strData.c_str(), (int)data.strData.size(), 0);
 		if (ret > 0)
@@ -106,7 +106,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 					CPacket pack((BYTE*)pBuffer, nLen);
 					if (nLen > 0)
 					{
-						::SendMessage(hWnd, WM_SEND_PACK_ACK, (WPARAM)new CPacket(pack), NULL);
+						::SendMessage(hWnd, WM_SEND_PACK_ACK, (WPARAM)new CPacket(pack), data.wParam);
 						if (data.nMOde & CSM_AUTOCLOSE)
 						{
 							CloseSocket();

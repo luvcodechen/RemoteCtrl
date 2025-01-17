@@ -4,7 +4,9 @@
 #pragma once
 #include "StatusDlg.h"
 
-
+#ifndef WM_SEND_PACK_ACK
+#define WM_SEND_PACK_ACK (WM_USER+2)//发送数据包应答
+#endif
 // CRemoteClientDlg 对话框
 class CRemoteClientDlg : public CDialogEx
 {
@@ -23,7 +25,7 @@ public:
 private:
 	CImage m_image; //缓存图片
 
-	bool m_isClosed;//监视是否关闭
+	bool m_isClosed; //监视是否关闭
 private:
 	void LoadFIleCurrent();
 	void LoadFileInfo();
@@ -59,4 +61,5 @@ public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnIpnFieldchangedIpaddressServ(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnEnChangeEditPort();
+	LRESULT OnSendPacketAck(WPARAM wParam, LPARAM lParam);
 };

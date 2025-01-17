@@ -208,18 +208,21 @@ typedef struct PacketData
 {
 	std::string strData;
 	UINT nMOde;
+	WPARAM wParam;
 
-	PacketData(const char* pData, size_t nLen, UINT mode)
+	PacketData(const char* pData, size_t nLen, UINT mode, WPARAM nParam = 0)
 	{
 		strData.resize(nLen);
 		memcpy((char*)strData.c_str(), pData, nLen);
 		nMOde = mode;
+		wParam = nParam;
 	}
 
 	PacketData(const PacketData& data)
 	{
 		strData = data.strData;
 		nMOde = data.nMOde;
+		wParam = data.wParam;
 	}
 
 	PacketData& operator=(const PacketData& data)
@@ -228,6 +231,7 @@ typedef struct PacketData
 		{
 			strData = data.strData;
 			nMOde = data.nMOde;
+			wParam = data.wParam;
 		}
 		return *this;
 	}
@@ -280,7 +284,7 @@ public:
 	}
 
 	//发送数据包
-	bool SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed = true);
+	bool SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed = true, WPARAM wParam = 0);
 
 
 	bool GetFilePath(std::string& strPath) const

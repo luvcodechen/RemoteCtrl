@@ -52,10 +52,19 @@ LRESULT CClientController::SendMessage(MSG msg)
 	return info.result; //返回结果
 }
 
-bool CClientController::SendCommandPack(HWND hWnd, int nCmd, bool bAutoClose, BYTE* pData, size_t nLength)
+bool CClientController::SendCommandPack(HWND hWnd, int nCmd, bool bAutoClose, BYTE* pData, size_t nLength,
+                                        WPARAM wParam)
 {
+	TRACE("cmd:%d %s start %lld \r\n", nCmd, __FUNCTION__, GetTickCount64()); //打印调试信息
 	CClientSocket* pClient = CClientSocket::GetInstance();
-	return pClient->SendPacket(hWnd, CPacket(nCmd, pData, nLength), bAutoClose);
+	return pClient->SendPacket(hWnd, CPacket(nCmd, pData, nLength), bAutoClose, wParam);
+}
+
+void CClientController::DownloadEnd()
+{
+	m_statusDlg.ShowWindow(SW_HIDE);
+	m_remoteDlg.EndWaitCursor(); //隐藏等待光标
+	m_remoteDlg.MessageBox(_T("下载完成"), _T("完成"));
 }
 
 int CClientController::DownloadFile(CString strPath)
@@ -68,11 +77,18 @@ int CClientController::DownloadFile(CString strPath)
 	{
 		m_strRemote = strPath;
 		m_strLocal = dlg.GetPathName();
-		m_hThreadDownload = (HANDLE)_beginthread(&CClientController::threadEntryForDownFile, 0, this);
-		if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT)
+		FILE* pFile = fopen(m_strLocal, "wb+");
+		if (pFile == NULL)
 		{
+			AfxMessageBox("本地没有权限保存该文件|文件无法创建");
 			return -1;
 		}
+		SendCommandPack(m_remoteDlg, 4, false, (BYTE*)(LPCTSTR)m_strRemote, m_strRemote.GetLength(), (WPARAM)pFile);
+		// m_hThreadDownload = (HANDLE)_beginthread(&CClientController::threadEntryForDownFile, 0, this);
+		// if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT)
+		// {
+		// 	return -1;
+		// }
 		m_remoteDlg.BeginWaitCursor();
 		m_statusDlg.m_info.SetWindowText("正在下载文件，请稍后...");
 		m_statusDlg.ShowWindow(SW_SHOW); //显示状态对话框
@@ -92,7 +108,7 @@ void CClientController::threadWatchScreen()
 		if (m_watchDLg.isFull() == false)
 		{
 			std::list<CPacket> lstPacks;
-			int ret = SendCommandPack(m_watchDLg.GetSafeHwnd(),6, true,NULL, 0);
+			int ret = SendCommandPack(m_watchDLg.GetSafeHwnd(), 6, true,NULL, 0);
 			//TODO:添加消息响应函数
 			//TODO:控制发送频率
 			if (ret == 6)
@@ -132,7 +148,8 @@ void CClientController::threadDownlownFile()
 	CClientSocket* pClient = CClientSocket::GetInstance();
 	do
 	{
-		int ret = SendCommandPack(m_remoteDlg,4, false, (BYTE*)(LPCTSTR)m_strRemote, m_strRemote.GetLength());
+		int ret = SendCommandPack(m_remoteDlg, 4, false, (BYTE*)(LPCTSTR)m_strRemote, m_strRemote.GetLength(),
+		                          (WPARAM)pFile);
 		long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
 		if (nLength == 0)
 		{
