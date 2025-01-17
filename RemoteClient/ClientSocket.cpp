@@ -39,17 +39,15 @@ BOOL CClientSocket::InitSocket()
 	return TRUE;
 }
 
-bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed,WPARAM wParam)
+bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed, WPARAM wParam)
 {
-	if (m_hThread == INVALID_HANDLE_VALUE)
-	{
-		m_hThread = (HANDLE)_beginthreadex(NULL, 0, &CClientSocket::threadEntry, this, 0, &m_nThreadId);
-	}
 	UINT nMode = isAutoClosed ? CSM_AUTOCLOSE : 0;
 	std::string strOut;
 	pack.Data(strOut);
-	return PostThreadMessage(m_nThreadId,WM_SEND_PACK, (WPARAM)new PACKET_DATA(strOut.c_str(), strOut.size(), nMode,wParam),
-	                         (LPARAM)hWnd);
+	bool ret = PostThreadMessage(m_nThreadId,WM_SEND_PACK,
+	                             (WPARAM)new PACKET_DATA(strOut.c_str(), strOut.size(), nMode, wParam),
+	                             (LPARAM)hWnd);
+	return ret;
 }
 
 //
@@ -236,6 +234,7 @@ unsigned CClientSocket::threadEntry(void* arg)
 
 void CClientSocket::threadFunc2()
 {
+	SetEvent(m_eventInvoke);
 	MSG msg;
 	while (::GetMessage(&msg, NULL, 0, 0))
 	{

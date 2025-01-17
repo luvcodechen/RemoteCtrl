@@ -418,11 +418,11 @@ LRESULT CRemoteClientDlg::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 	}
 	else
 	{
-		CPacket* pPack = (CPacket*)wParam;
-		if (pPack != NULL)
+		if (wParam != NULL)
 		{
-			CPacket head = *pPack;
-			switch (pPack->sCmd)
+			CPacket head = *(CPacket*)wParam;
+			delete (CPacket*)wParam;
+			switch (head.sCmd)
 			{
 			case 1: //获取驱动信息
 				{

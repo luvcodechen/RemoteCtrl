@@ -325,6 +325,7 @@ public:
 	}
 
 private:
+	HANDLE m_eventInvoke; //启动事件
 	UINT m_nThreadId;
 	typedef void (CClientSocket::*MSGFUNC)(UINT nMsg, WPARAM wParam, LPARAM lParam);
 	std::map<UINT, MSGFUNC> m_mapFunc;
@@ -350,6 +351,13 @@ private:
 			MessageBox(NULL, _T("InitSocketEnv failed"), _T("Error"), MB_OK | MB_ICONERROR);
 			exit(0);
 		}
+		m_eventInvoke = CreateEvent(NULL, TRUE, FALSE, NULL);
+		m_hThread = (HANDLE)_beginthreadex(NULL, 0, &CClientSocket::threadEntry, this, 0, &m_nThreadId);
+		if (WaitForSingleObject(m_eventInvoke, 100) == WAIT_TIMEOUT)
+		{
+			TRACE("网络消息处理线程启动失败\r\n");
+		}
+		CloseHandle(m_eventInvoke);
 		m_buffer.resize(BUFFER_SIZE);
 		memset(m_buffer.data(), 0, BUFFER_SIZE);
 		struct
