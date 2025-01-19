@@ -122,26 +122,27 @@ LRESULT CWatchDialog::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 		CPacket* pPack = (CPacket*)wParam;
 		if (pPack != NULL)
 		{
-			switch (pPack->sCmd)
+			CPacket head = *(CPacket*)wParam;
+			delete (CPacket*)wParam;
+			switch (head.sCmd)
 			{
 			case 6:
 				{
-					if (m_isFull == true)
-					{
-						CMyTool::Byte2Image(m_image, pPack->strData);
-						CRect rect;
-						m_picture.GetWindowRect(rect); //获取控件大小
-						m_nObjWidth = m_image.GetWidth(); //获取图片宽度
-						m_nObjHeight = m_image.GetHeight(); //获取图片高度
-						m_image.StretchBlt(
-							m_picture.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY); //拉伸图片
-						m_picture.InvalidateRect(NULL); //刷新控件
-						m_image.Destroy(); //销毁图片
-						m_isFull = false;
-					}
+					CMyTool::Byte2Image(m_image, pPack->strData);
+					CRect rect;
+					m_picture.GetWindowRect(rect); //获取控件大小
+					m_nObjWidth = m_image.GetWidth(); //获取图片宽度
+					m_nObjHeight = m_image.GetHeight(); //获取图片高度
+					m_image.StretchBlt(
+						m_picture.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY); //拉伸图片
+					m_picture.InvalidateRect(NULL); //刷新控件
+					m_image.Destroy(); //销毁图片
+					m_isFull = false;
 					break;
 				}
 			case 5:
+				TRACE("远程端应答鼠标操作\r\n");
+				break;
 			case 7:
 			case 8:
 			default:

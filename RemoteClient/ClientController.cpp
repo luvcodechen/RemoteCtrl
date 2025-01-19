@@ -104,25 +104,26 @@ int CClientController::DownloadFile(CString strPath)
 void CClientController::threadWatchScreen()
 {
 	Sleep(50);
+	ULONGLONG nTick = GetTickCount64();
 	while (!m_isClosed)
 	{
 		if (m_watchDLg.isFull() == false)
 		{
-			std::list<CPacket> lstPacks;
+			if (GetTickCount64() - nTick < 200)
+			{
+				Sleep(200 - (DWORD)(GetTickCount64() - nTick)); //控制发送频率
+			}
+			nTick= GetTickCount64();//更新时间
 			int ret = SendCommandPack(m_watchDLg.GetSafeHwnd(), 6, true,NULL, 0);
 			//TODO:添加消息响应函数
 			//TODO:控制发送频率
-			if (ret == 6)
+			if (ret == 1)
 			{
-				if (CMyTool::Byte2Image(m_watchDLg.getImage(), lstPacks.front().strData) == 0)
-				{
-					m_watchDLg.SetImageStatus(true);
-					TRACE("获取图像成功\r\n");
-				}
-				else
-				{
-					TRACE("获取图像失败ret= %d \r\n", ret);
-				}
+				// TRACE("获取图像成功\r\n");
+			}
+			else
+			{
+				TRACE("获取图像失败ret= %d \r\n", ret);
 			}
 		}
 		Sleep(1);

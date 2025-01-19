@@ -44,40 +44,16 @@ bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed
 	UINT nMode = isAutoClosed ? CSM_AUTOCLOSE : 0;
 	std::string strOut;
 	pack.Data(strOut);
+	PACKET_DATA* pData = new PACKET_DATA(strOut.c_str(), strOut.size(), nMode, wParam);
 	bool ret = PostThreadMessage(m_nThreadId,WM_SEND_PACK,
 	                             (WPARAM)new PACKET_DATA(strOut.c_str(), strOut.size(), nMode, wParam),
 	                             (LPARAM)hWnd);
+	if (ret == false)
+	{
+		delete pData;
+	}
 	return ret;
 }
-
-//
-// bool CClientSocket::SendPacket(const CPacket& packet, std::list<CPacket>& lstPacks, bool isAutoClosed)
-// {
-// 	if (m_socket == INVALID_SOCKET && m_hThread == INVALID_HANDLE_VALUE)
-// 	{
-// 		// if (InitSocket() == false)return false;
-// 		m_hThread = (HANDLE)_beginthread(&CClientSocket::threadEntry, 0, this);
-// 		TRACE("start thread\r\n");
-// 	}
-// 	m_lock.lock(); //加锁
-// 	auto pr = m_mapAck.insert({packet.hEvent, lstPacks});
-// 	m_mapAutoClosed.insert(std::pair<HANDLE, bool>(packet.hEvent, isAutoClosed));
-//
-// 	m_listSend.push_back(packet); //发送
-// 	m_lock.unlock(); //解锁
-// 	TRACE("cmd:%d event %08X thread id %d\r\n", packet.sCmd, packet.hEvent, GetCurrentThreadId());
-// 	WaitForSingleObject(packet.hEvent, INFINITE);
-// 	TRACE("cmd:%d event %08X thread id %d\r\n", packet.sCmd, packet.hEvent, GetCurrentThreadId());
-// 	std::map<HANDLE, std::list<CPacket>&>::iterator it = m_mapAck.find(packet.hEvent); //查找事件
-// 	if (it != m_mapAck.end())
-// 	{
-// 		m_lock.lock();
-// 		m_mapAck.erase(it); //删除事件
-// 		m_lock.unlock();
-// 		return true;
-// 	}
-// 	return false;
-// }
 
 void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
