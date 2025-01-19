@@ -22,13 +22,14 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX); // DDX/DDV 支持
 public:
+	void LoadFileInfo();
 private:
 	CImage m_image; //缓存图片
 
 	bool m_isClosed; //监视是否关闭
 private:
 	void LoadFIleCurrent();
-	void LoadFileInfo();
+
 	CString GetPath(HTREEITEM hTree);
 	void DeleteTreeChildItem(HTREEITEM hTree);
 

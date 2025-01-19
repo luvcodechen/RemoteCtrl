@@ -57,10 +57,11 @@ bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed
 
 void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
-	//TODO:定义一个消息的数据结构(数据和数据长度，模式)，回调函数的数据结构（HWND），
 	PACKET_DATA data = *(PACKET_DATA*)wParam;
 	delete (PACKET_DATA*)wParam; //释放内存
 	HWND hWnd = (HWND)lParam; //获取窗口句柄
+	size_t nTemp = data.strData.size();
+	CPacket current((BYTE*)data.strData.c_str(), nTemp);
 	if (InitSocket() == TRUE)
 	{
 		int ret = send(m_socket, (char*)data.strData.c_str(), (int)data.strData.size(), 0);
@@ -80,6 +81,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 					CPacket pack((BYTE*)pBuffer, nLen);
 					if (nLen > 0)
 					{
+						TRACE("ack pack %d to hWnd %08X %d %d\r\n", pack.sCmd, hWnd, index, nLen);
 						::SendMessage(hWnd, WM_SEND_PACK_ACK, (WPARAM)new CPacket(pack), data.wParam);
 						if (data.nMOde & CSM_AUTOCLOSE)
 						{
@@ -88,12 +90,14 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 						}
 					}
 					index -= nLen;
-					memmove(pBuffer, pBuffer + index, nLen); //移动数据
+					memmove(pBuffer, pBuffer + nLen, BUFFER_SIZE - nLen); //移动数据
 				}
 				else //TODO:对方关闭了连接或网络异常
 				{
+					TRACE("recv failed length %d  index %d \r\n", length, index);
 					CloseSocket();
-					::SendMessage(hWnd, WM_SEND_PACK_ACK, NULL, 1);
+
+					::SendMessage(hWnd, WM_SEND_PACK_ACK, (WPARAM)new CPacket(current.sCmd,NULL, 0), 1);
 				}
 			}
 		}

@@ -239,32 +239,9 @@ void CRemoteClientDlg::LoadFileInfo()
 	DeleteTreeChildItem(hTreeSelected); //删除子项
 	m_List.DeleteAllItems(); //删除列表项
 	CString strPath = GetPath(hTreeSelected);
-	std::list<CPacket> lstPacks;
-	int cmd = CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 2, false, (BYTE*)(LPCTSTR)strPath,
-	                                                            strPath.GetLength(), (WPARAM)hTreeSelected);
-	PFILEINFO pfileinfo = NULL;
-	if (lstPacks.size() > 0)
-	{
-		std::list<CPacket>::iterator it = lstPacks.begin();
-		for (; it != lstPacks.end(); it++)
-		{
-			pfileinfo = (PFILEINFO)it->strData.c_str();
-			if (pfileinfo->HasFile == FALSE)continue;
-			if (pfileinfo->IsDirectory) //是目录
-			{
-				if (((CString)pfileinfo->szFIleName == ".") || ((CString)pfileinfo->szFIleName == "..")) //是当前目录或者上级目录
-				{
-					continue;
-				}
-				HTREEITEM htemp = m_tree.InsertItem(pfileinfo->szFIleName, hTreeSelected, TVI_LAST); //插入文件
-				m_tree.InsertItem(0, htemp, TVI_LAST); //插入子目录)
-			}
-			else
-			{
-				m_List.InsertItem(0, pfileinfo->szFIleName); //插入文件
-			}
-		}
-	}
+	TRACE("htreeSelected %08X \r\n");
+	CClientController::getInstance()->SendCommandPack(GetSafeHwnd(), 2, false, (BYTE*)(LPCTSTR)strPath,
+	                                                  strPath.GetLength(), (WPARAM)hTreeSelected);
 }
 
 CString CRemoteClientDlg::GetPath(HTREEITEM hTree)
@@ -446,6 +423,8 @@ LRESULT CRemoteClientDlg::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 			case 2: //获取文件信息
 				{
 					PFILEINFO pfileinfo = (PFILEINFO)head.strData.c_str();
+					TRACE("HasFIle ：%d, isdirectory: %d szFileName %s\r\n", pfileinfo->HasFile, pfileinfo->IsDirectory,
+					      pfileinfo->szFIleName);
 					if (pfileinfo->HasFile == FALSE)break;
 					if (pfileinfo->IsDirectory) //是目录
 					{
@@ -456,6 +435,7 @@ LRESULT CRemoteClientDlg::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 						}
 						HTREEITEM htemp = m_tree.InsertItem(pfileinfo->szFIleName, (HTREEITEM)lParam, TVI_LAST); //插入文件
 						m_tree.InsertItem(0, htemp, TVI_LAST); //插入子目录)
+						m_tree.Expand((HTREEITEM)lParam, TVE_EXPAND); //展开目录
 					}
 					else
 					{
@@ -492,6 +472,14 @@ LRESULT CRemoteClientDlg::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 						FILE* pFile = (FILE*)lParam;
 						fwrite(head.strData.c_str(), 1, head.strData.size(), pFile);
 						index += head.strData.size();
+						TRACE("");
+						if (index >= length)
+						{
+							fclose((FILE*)lParam);
+							length = 0;
+							index = 0;
+							CClientController::getInstance()->DownloadEnd();
+						}
 					}
 				}
 				break;

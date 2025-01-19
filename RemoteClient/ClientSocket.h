@@ -84,6 +84,7 @@ public:
 		{
 			strData.resize(nLength - 2 - 2); //包长-命令-校验和
 			memcpy((void*)strData.c_str(), pData + i, nLength - 2 - 2); //包数据
+			TRACE("%s \r\n", strData.c_str() + 12); //打印数据
 			i += nLength - 2 - 2; //跳过包数据
 		}
 
