@@ -46,7 +46,7 @@ bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed
 	pack.Data(strOut);
 	PACKET_DATA* pData = new PACKET_DATA(strOut.c_str(), strOut.size(), nMode, wParam);
 	bool ret = PostThreadMessage(m_nThreadId,WM_SEND_PACK,
-	                             (WPARAM)new PACKET_DATA(strOut.c_str(), strOut.size(), nMode, wParam),
+	                             (WPARAM)pData,
 	                             (LPARAM)hWnd);
 	if (ret == false)
 	{
@@ -59,6 +59,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
 	PACKET_DATA data = *(PACKET_DATA*)wParam;
 	delete (PACKET_DATA*)wParam; //释放内存
+	wParam = NULL; 
 	HWND hWnd = (HWND)lParam; //获取窗口句柄
 	size_t nTemp = data.strData.size();
 	CPacket current((BYTE*)data.strData.c_str(), nTemp);
@@ -74,7 +75,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 			while (m_socket != INVALID_SOCKET)
 			{
 				int length = recv(m_socket, pBuffer + index,BUFFER_SIZE - index, 0); //接收数据
-				if (length > 0 || index > 0)
+				if (length > 0 || (index > 0))
 				{
 					index += (size_t)length;
 					size_t nLen = index;
@@ -90,7 +91,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 						}
 					}
 					index -= nLen;
-					memmove(pBuffer, pBuffer + nLen, BUFFER_SIZE - nLen); //移动数据
+					memmove(pBuffer, pBuffer + nLen, index); //移动数据
 				}
 				else //TODO:对方关闭了连接或网络异常
 				{
@@ -110,7 +111,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 	}
 	else
 	{
-		::SendMessage(hWnd, WM_SEND_PACK_ACK, NULL, NULL);
+		::SendMessage(hWnd, WM_SEND_PACK_ACK, NULL, -2);
 	}
 }
 

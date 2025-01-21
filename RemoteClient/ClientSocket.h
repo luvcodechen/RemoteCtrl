@@ -372,7 +372,9 @@ private:
 			};
 		for (int i = 0; funcs[i].func != NULL; i++)
 		{
-			m_mapFunc[funcs[i].message] = funcs[i].func;
+			if (m_mapFunc.insert(std::pair<UINT, MSGFUNC>(funcs[i].message, funcs[i].func)).second == false) {
+				TRACE("插入失败，消息值：%d 函数值:%08X 序号:%d\r\n", funcs[i].message, funcs[i].func, i);
+			}
 		}
 	} //构造函数
 

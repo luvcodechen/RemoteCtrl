@@ -128,7 +128,7 @@ LRESULT CWatchDialog::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 			{
 			case 6:
 				{
-					CMyTool::Byte2Image(m_image, pPack->strData);
+					CMyTool::Byte2Image(m_image, head.strData);
 					CRect rect;
 					m_picture.GetWindowRect(rect); //获取控件大小
 					m_nObjWidth = m_image.GetWidth(); //获取图片宽度
@@ -252,24 +252,6 @@ void CWatchDialog::OnRButtonUp(UINT nFlags, CPoint point)
 	}
 	CDialog::OnRButtonUp(nFlags, point);
 }
-
-//void CWatchScreenDlg::OnMouseMove(UINT nFlags, CPoint point)
-//{
-//	// TODO: 在此添加消息处理程序代码和/或调用默认值
-//	CPoint Serpoint = CliPointToSerPoint(point);
-//	MOUSEINFO mouseinfo;
-//	mouseinfo.Mousepos.x = Serpoint.x;
-//	mouseinfo.Mousepos.y = Serpoint.y;
-//	mouseinfo.MouseButton = 3;
-//	mouseinfo.MouseAction = 4;
-//	CClientSocket::pInvoker->InitSockAddr(IP("127.0.0.1", 9527));
-//	CClientSocket::pInvoker->MsgSend(CPacketCli(6, (BYTE*)&mouseinfo, sizeof(mouseinfo)));
-//	CClientSocket::pInvoker->MsgRecv();
-//
-//
-//	//CClientSocket::pInvoker->CloseCliSock();
-//	CDialog::OnMouseMove(nFlags, point);
-//}
 
 void CWatchDialog::OnMouseMove(UINT nFlags, CPoint point)
 {

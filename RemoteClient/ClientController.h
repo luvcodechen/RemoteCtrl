@@ -23,7 +23,6 @@ public:
 	//启动
 	int Invoke(CWnd*& pMainWnd);
 	// 发送消息
-	LRESULT SendMessage(MSG msg);
 	//更新网络服务器的地址
 	void UpdateAdress(int nIP, int nPort)
 	{
@@ -50,13 +49,14 @@ public:
 		bool bAutoClose = true,
 		BYTE* pData = NULL,
 		size_t nLength = 0,
-		WPARAM wParam=0);
+		WPARAM wParam = 0);
 
 	int GetImage(CImage& image)
 	{
 		CClientSocket* pClient = CClientSocket::GetInstance();
 		return CMyTool::Byte2Image(image, pClient->GetPacket().strData);
 	}
+
 	void DownloadEnd();
 	int DownloadFile(CString strPath);
 
@@ -73,14 +73,12 @@ public:
 protected:
 	void threadWatchScreen();
 	static void threadWatchScreen(void* arg);
-	void threadDownlownFile();
-	static void threadEntryForDownFile(void* arg);
+
 
 	CClientController():
 		m_statusDlg(&m_remoteDlg),
 		m_watchDLg(&m_remoteDlg)
 	{
-		m_hThreadDownload = INVALID_HANDLE_VALUE;
 		m_hThread = INVALID_HANDLE_VALUE;
 		m_hThreadWatch = INVALID_HANDLE_VALUE;
 		m_nThreadID = -1;
@@ -144,7 +142,7 @@ private:
 	CStatusDlg m_statusDlg;
 	static CClientController* m_instance;
 	HANDLE m_hThread;
-	HANDLE m_hThreadDownload;
+
 	HANDLE m_hThreadWatch;
 	unsigned m_nThreadID;
 	CString m_strRemote; //下载文件的远程路径
