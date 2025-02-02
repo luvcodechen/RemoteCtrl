@@ -52,7 +52,7 @@ public:
 		WPARAM wParam = 0);
 
 	int GetImage(CImage& image)
-	{
+	{ 
 		CClientSocket* pClient = CClientSocket::GetInstance();
 		return CMyTool::Byte2Image(image, pClient->GetPacket().strData);
 	}

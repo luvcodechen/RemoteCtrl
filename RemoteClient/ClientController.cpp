@@ -94,9 +94,9 @@ void CClientController::threadWatchScreen()
 	{
 		if (m_watchDLg.isFull() == false)
 		{
-			if (GetTickCount64() - nTick < 200)
+			if (GetTickCount64() - nTick < 1000)
 			{
-				Sleep(200 - (DWORD)(GetTickCount64() - nTick)); //控制发送频率
+				Sleep(1000 - (DWORD)(GetTickCount64() - nTick)); //控制发送频率
 			}
 			nTick = GetTickCount64(); //更新时间
 			int ret = SendCommandPack(m_watchDLg.GetSafeHwnd(), 6, true,NULL, 0);
@@ -109,7 +109,7 @@ void CClientController::threadWatchScreen()
 				TRACE("获取图像失败ret= %d \r\n", ret);
 			}
 		}
-		Sleep(1);
+		// Sleep(1);
 	}
 }
 

@@ -252,7 +252,7 @@ public:
 	BOOL InitSocket(); //初始化套接字
 
 
-#define BUFFER_SIZE 10240000
+#define BUFFER_SIZE 102400000
 
 	int DealCommand()
 	{
@@ -372,7 +372,8 @@ private:
 			};
 		for (int i = 0; funcs[i].func != NULL; i++)
 		{
-			if (m_mapFunc.insert(std::pair<UINT, MSGFUNC>(funcs[i].message, funcs[i].func)).second == false) {
+			if (m_mapFunc.insert(std::pair<UINT, MSGFUNC>(funcs[i].message, funcs[i].func)).second == false)
+			{
 				TRACE("插入失败，消息值：%d 函数值:%08X 序号:%d\r\n", funcs[i].message, funcs[i].func, i);
 			}
 		}
@@ -380,6 +381,9 @@ private:
 
 	~CClientSocket()
 	{
+		PostThreadMessage(m_nThreadId,WM_QUIT, NULL, NULL);
+		WaitForSingleObject(m_hThread,INFINITE);
+
 		closesocket(m_socket); //关闭套接字
 		WSACleanup(); //清理套接字
 	} //析构函数

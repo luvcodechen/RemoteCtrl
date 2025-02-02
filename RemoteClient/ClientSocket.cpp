@@ -51,6 +51,7 @@ bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed
 	if (ret == false)
 	{
 		delete pData;
+		pData= NULL;
 	}
 	return ret;
 }

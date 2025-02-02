@@ -112,10 +112,15 @@ LRESULT CWatchDialog::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 	if (lParam == -1 || lParam == -2)
 	{
 		//TODO:错误处理
+		delete (CPacket*)wParam;
+		wParam = NULL;
 	}
 	else if (lParam == 1)
 	{
 		//对方关闭了套接字
+		delete (CPacket*)wParam;
+		wParam = NULL;
+
 	}
 	else
 	{
@@ -124,6 +129,7 @@ LRESULT CWatchDialog::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 		{
 			CPacket head = *(CPacket*)wParam;
 			delete (CPacket*)wParam;
+			wParam= NULL;
 			switch (head.sCmd)
 			{
 			case 6:

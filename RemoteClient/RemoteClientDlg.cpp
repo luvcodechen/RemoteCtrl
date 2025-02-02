@@ -460,11 +460,15 @@ LRESULT CRemoteClientDlg::OnSendPacketAck(WPARAM wParam, LPARAM lParam)
 	if (lParam == -1 || lParam == -2)
 	{
 		TRACE("socket is error %d \r\n", lParam);
+		delete (CPacket*)wParam;
+		wParam = NULL;
 	}
 	else if (lParam == 1)
 	{
 		//对方关闭了套接字
 		TRACE("socket is closed!\r\n");
+		delete (CPacket*)wParam;
+		wParam = NULL;
 	}
 	else
 	{
