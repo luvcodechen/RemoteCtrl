@@ -95,8 +95,52 @@ void ChooseAutoInvoke()
 	return;
 }
 
+void ShowError()
+{
+	LPWSTR lpMessageBuf = NULL;
+	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,NULL, GetLastError(),
+	              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+	              (LPWSTR)&lpMessageBuf, 0,NULL); //获取错误信息
+	OutputDebugString(lpMessageBuf); //输出错误信息
+
+	LocalFree(lpMessageBuf); //释放内存
+	exit(0);
+}
+
+bool IsAdmin()
+{
+	HANDLE hToken = NULL; //令牌句柄
+	if (!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY, &hToken)) //打开进程令牌
+	{
+		ShowError();
+		return false;
+	}
+	TOKEN_ELEVATION eve; //令牌提升
+	DWORD len = 0;
+	if (GetTokenInformation(hToken, TokenElevation, &eve, sizeof(eve), &len) == false) //获取令牌信息
+	{
+		ShowError();
+		return false;
+	}
+	CloseHandle(hToken);
+	if (len == sizeof(eve))
+	{
+		return eve.TokenIsElevated;
+	}
+	printf("length of tokeninformation is %d\r\n", len);
+	return false;
+}
+
 int main()
 {
+	if (IsAdmin())
+	{
+		OutputDebugString(L"current is run as administrator !\r\n");
+	}
+	else
+	{
+		OutputDebugString(L"current is not run as administrator !\r\n");
+	}
 	int nRetCode = 0;
 
 	HMODULE hModule = ::GetModuleHandle(nullptr);
