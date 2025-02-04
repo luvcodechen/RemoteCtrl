@@ -79,7 +79,7 @@ typedef struct IocpParam
 	}
 } IOCP_PARAM;
 
-void threadQueueEntry(HANDLE HIOCP)
+void threadmain(HANDLE HIOCP)
 {
 	std::list<std::string> lststring;
 	DWORD dwTransferred = 0;
@@ -117,7 +117,12 @@ void threadQueueEntry(HANDLE HIOCP)
 		delete pParam;
 		pParam = NULL;
 	}
-	_endthread();
+}
+
+void threadQueueEntry(HANDLE HIOCP)
+{
+	threadmain(HIOCP);
+	_endthread();//代码到此位置，会导致本地对象无法调用析构进行释放，从而导致内存泄漏
 }
 
 void func(void* arg)
@@ -141,15 +146,21 @@ int main()
 	printf("press any key to exit ..\r\n");
 	HANDLE hIOCP = INVALID_HANDLE_VALUE; //	IO Completion Port
 	hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1); //创建IOCP
+
+	if (hIOCP == INVALID_HANDLE_VALUE || hIOCP == NULL)
+	{
+		printf("Create IoCompletionPort failed %d\r\n", GetLastError());
+		return 1;
+	}
 	HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
 
 	ULONGLONG tick = GetTickCount64();
-	while (_kbhit() != 0) // 完成端口 把请求和实现 分离 了
+	while (_kbhit() == 0) // 完成端口 把请求和实现 分离 了
 	{
 		if (GetTickCount64() - tick > 1300)
 		{
 			PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
-			                           (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello world"), NULL); //唤醒完成端口
+			                           (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello world", func), NULL); //唤醒完成端口
 		}
 		if (GetTickCount64() - tick > 2000)
 		{
