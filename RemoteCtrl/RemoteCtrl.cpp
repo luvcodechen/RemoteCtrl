@@ -6,7 +6,7 @@
 #include "RemoteCtrl.h"
 #include "ServerSocket.h"
 #include "Command.h"
-
+#include "conio.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -53,34 +53,146 @@ bool ChooseAutoInvoke(const CString& strPath)
 	return true;
 }
 
-
-int main()
+enum
 {
-	if (CMyTool::IsAdmin())
+	IocpListEmpty,
+	IocpListPush,
+	IocpListPop
+};
+
+typedef struct IocpParam
+{
+	int nOperator; //操作
+	std::string strData; //数据
+	_beginthread_proc_type cbFunc; //回调函数
+	IocpParam(int op, const char* sData, _beginthread_proc_type cb = NULL)
 	{
-		if (!CMyTool::Init())return 1;
-		if (ChooseAutoInvoke(INVOKE_PATH))
+		nOperator = op;
+		strData = sData;
+		cbFunc = cb;
+	}
+
+	IocpParam()
+	{
+		nOperator = -1;
+		strData = "";
+	}
+} IOCP_PARAM;
+
+void threadQueueEntry(HANDLE HIOCP)
+{
+	std::list<std::string> lststring;
+	DWORD dwTransferred = 0;
+	ULONG_PTR CompletionKey = 0;
+	OVERLAPPED* pOverlapped = NULL;
+	while (GetQueuedCompletionStatus(HIOCP, &dwTransferred, &CompletionKey, &pOverlapped, INFINITE))
+	{
+		if (CompletionKey == 0 && dwTransferred == NULL)
 		{
-			CCommand cmd;
-			int ret = CServerSocket::GetInstance()->Run(&CCommand::RunCommand, &cmd);
-			switch (ret)
+			printf("exit threadQueueEntry\r\n");
+			break;
+		}
+		IOCP_PARAM* pParam = (IOCP_PARAM*)CompletionKey;
+		if (pParam->nOperator = IocpListPush)
+		{
+			lststring.push_back(pParam->strData);
+		}
+		else if (pParam->nOperator = IocpListPop)
+		{
+			std::string* pStr = NULL;
+			if (lststring.size() > 0)
 			{
-			case -1:
-				MessageBox(NULL, L"网络初始化失败", L"错误", MB_OK | MB_ICONERROR);
-				break;
-			case -2:
-				MessageBox(NULL, L"多次无法正常接入用户", L"接入用户失败", MB_OK | MB_ICONERROR);
-				break;
+				pStr = new std::string(lststring.front());
+				lststring.pop_front();
+			}
+			if (pParam->cbFunc)
+			{
+				pParam->cbFunc(pStr);
 			}
 		}
+		else if (pParam->nOperator = IocpListEmpty)
+		{
+			lststring.clear();
+		}
+		delete pParam;
+		pParam = NULL;
+	}
+	_endthread();
+}
+
+void func(void* arg)
+{
+	std::string* pstr = (std::string*)arg;
+	if (pstr != NULL)
+	{
+		printf("pop from list:%s\r\n", pstr->c_str()); //输出
+		delete pstr;
+		pstr = NULL;
 	}
 	else
 	{
-		if (CMyTool::RunAsAdmin() == false)
-		{
-			CMyTool::ShowError();
-			return 1;
-		}
+		printf("list is no data\r\n");
 	}
+}
+
+int main()
+{
+	if (!CMyTool::Init())return 1;
+	printf("press any key to exit ..\r\n");
+	HANDLE hIOCP = INVALID_HANDLE_VALUE; //	IO Completion Port
+	hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1); //创建IOCP
+	HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
+
+	ULONGLONG tick = GetTickCount64();
+	while (_kbhit() != 0) // 完成端口 把请求和实现 分离 了
+	{
+		if (GetTickCount64() - tick > 1300)
+		{
+			PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
+			                           (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello world"), NULL); //唤醒完成端口
+		}
+		if (GetTickCount64() - tick > 2000)
+		{
+			PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
+			                           (ULONG_PTR)new IOCP_PARAM(IocpListPush, "hello world"), NULL); //唤醒完成端口
+			tick = GetTickCount64();
+		}
+		Sleep(1);
+	}
+	if (hIOCP != NULL) //关闭IOCP
+	{
+		//TODO：唤醒完成端口
+		PostQueuedCompletionStatus(hIOCP, 0, NULL, NULL); //唤醒完成端口
+		WaitForSingleObject(hThread, INFINITE);
+	}
+	CloseHandle(hIOCP);
+	printf("exit done!\r\n");
+	::exit(0);
+	// if (CMyTool::IsAdmin())
+	// {
+	// 	if (!CMyTool::Init())return 1;
+	// 	if (ChooseAutoInvoke(INVOKE_PATH))
+	// 	{
+	// 		CCommand cmd;
+	// 		int ret = CServerSocket::GetInstance()->Run(&CCommand::RunCommand, &cmd);
+	// 		switch (ret)
+	// 		{
+	// 		case -1:
+	// 			MessageBox(NULL, L"网络初始化失败", L"错误", MB_OK | MB_ICONERROR);
+	// 			break;
+	// 		case -2:
+	// 			MessageBox(NULL, L"多次无法正常接入用户", L"接入用户失败", MB_OK | MB_ICONERROR);
+	// 			break;
+	// 		}
+	// 	}
+	// }
+	// else
+	// {
+	// 	if (CMyTool::RunAsAdmin() == false)
+	// 	{
+	// 		CMyTool::ShowError();
+	// 		return 1;
+	// 	}
+	// }
 	return 0;
 }
