@@ -7,7 +7,7 @@
 #include "ServerSocket.h"
 #include "Command.h"
 #include "conio.h"
-
+#include "MyQueue.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -122,7 +122,7 @@ void threadmain(HANDLE HIOCP)
 void threadQueueEntry(HANDLE HIOCP)
 {
 	threadmain(HIOCP);
-	_endthread();//代码到此位置，会导致本地对象无法调用析构进行释放，从而导致内存泄漏
+	_endthread(); //代码到此位置，会导致本地对象无法调用析构进行释放，从而导致内存泄漏
 }
 
 void func(void* arg)
@@ -144,40 +144,27 @@ int main()
 {
 	if (!CMyTool::Init())return 1;
 	printf("press any key to exit ..\r\n");
-	HANDLE hIOCP = INVALID_HANDLE_VALUE; //	IO Completion Port
-	hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1); //创建IOCP
-
-	if (hIOCP == INVALID_HANDLE_VALUE || hIOCP == NULL)
-	{
-		printf("Create IoCompletionPort failed %d\r\n", GetLastError());
-		return 1;
-	}
-	HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
-
-	ULONGLONG tick = GetTickCount64();
+	MyQueue<std::string> lstStrings;
+	ULONGLONG tick0 = GetTickCount64(), tick = GetTickCount64();
 	while (_kbhit() == 0) // 完成端口 把请求和实现 分离 了
 	{
-		if (GetTickCount64() - tick > 1300)
+		if (GetTickCount64() - tick0 > 1300)
 		{
-			PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
-			                           (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello world", func), NULL); //唤醒完成端口
+			lstStrings.PushBack("helloworld");
+			tick0 = GetTickCount64();
 		}
 		if (GetTickCount64() - tick > 2000)
 		{
-			PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
-			                           (ULONG_PTR)new IOCP_PARAM(IocpListPush, "hello world"), NULL); //唤醒完成端口
+			std::string str;
+			lstStrings.PopFront(str);
 			tick = GetTickCount64();
+			printf("pop from queue :%s\r\n", str.c_str());
 		}
 		Sleep(1);
 	}
-	if (hIOCP != NULL) //关闭IOCP
-	{
-		//TODO：唤醒完成端口
-		PostQueuedCompletionStatus(hIOCP, 0, NULL, NULL); //唤醒完成端口
-		WaitForSingleObject(hThread, INFINITE);
-	}
-	CloseHandle(hIOCP);
-	printf("exit done!\r\n");
+	printf("exit done! size %d\r\n", lstStrings.Size());
+	lstStrings.Clear(); //清空队列
+	printf("exit done! size %d\r\n", lstStrings.Size());
 	::exit(0);
 	// if (CMyTool::IsAdmin())
 	// {
