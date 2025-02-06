@@ -41,19 +41,23 @@ public:
 		m_hThread = INVALID_HANDLE_VALUE;
 		if (m_hCompletionPort != NULL)
 		{
-			m_hThread = (HANDLE)_beginthread(&MyQueue<T>::threadEntry, 0, m_hCompletionPort); //创建线程
+			m_hThread = (HANDLE)_beginthread(&MyQueue<T>::threadEntry, 0, this); //创建线程
 		}
 	}
 
 	~MyQueue()
 	{
+		if (m_lock)return;
 		m_lock = true; //锁定队列
-		HANDLE hTemp = m_hCompletionPort;
 		PostQueuedCompletionStatus(m_hCompletionPort, 0, NULL, NULL);
 		//投递一个空的消息
 		WaitForSingleObject(m_hThread, INFINITE); //等待线程结束
-		m_hCompletionPort = NULL;
-		CloseHandle(hTemp); //关闭完成端口
+		if (m_hCompletionPort != NULL)
+		{
+			HANDLE hTemp = m_hCompletionPort;
+			m_hCompletionPort = NULL;
+			CloseHandle(hTemp); //关闭完成端口
+		}
 	}
 
 	bool PushBack(const T& data)
@@ -199,7 +203,9 @@ private
 			pParam = (PPARAM*)CompletionKey;
 			DealParam(pParam);
 		}
-		CloseHandle(m_hCompletionPort); //关闭完成端口
+		HANDLE hTemp = m_hCompletionPort;
+		m_hCompletionPort = NULL;
+		CloseHandle(hTemp); //关闭完成端口
 	}
 
 	std::list<T> m_listData; //数据队列

@@ -140,32 +140,52 @@ void func(void* arg)
 	}
 }
 
-int main()
+
+void test()
 {
-	if (!CMyTool::Init())return 1;
-	printf("press any key to exit ..\r\n");
 	MyQueue<std::string> lstStrings;
-	ULONGLONG tick0 = GetTickCount64(), tick = GetTickCount64();
-	while (_kbhit() == 0) // 完成端口 把请求和实现 分离 了
+	ULONGLONG tick0 = GetTickCount64(), tick = GetTickCount64(), total = GetTickCount64();
+	printf("press any key to exit ..\r\n");
+	while (GetTickCount64() - total <= 1000)
 	{
-		if (GetTickCount64() - tick0 > 1300)
-		{
-			lstStrings.PushBack("helloworld");
-			tick0 = GetTickCount64();
-		}
-		if (GetTickCount64() - tick > 2000)
-		{
-			std::string str;
-			lstStrings.PopFront(str);
-			tick = GetTickCount64();
-			printf("pop from queue :%s\r\n", str.c_str());
-		}
-		Sleep(1);
+		lstStrings.PushBack("hello world");
+		tick0 = GetTickCount64();
+	}
+	printf("exit done! size %d\r\n", lstStrings.Size());
+	total = GetTickCount64();
+	while (GetTickCount64() - total <= 1000)
+	{
+		std::string str;
+		lstStrings.PopFront(str);
+		tick = GetTickCount64();
 	}
 	printf("exit done! size %d\r\n", lstStrings.Size());
 	lstStrings.Clear(); //清空队列
-	printf("exit done! size %d\r\n", lstStrings.Size());
-	::exit(0);
+	std::list<std::string> lstData;
+	total = GetTickCount64();
+	while (GetTickCount64() - total <= 1000)
+	{
+		lstData.push_back("hello world");
+	}
+	printf("lstData push done! size %d\r\n", lstData.size());
+	total = GetTickCount64();
+	while (GetTickCount64() - total <= 500)
+	{
+		if (lstData.size() > 0)
+			lstData.pop_front();
+	}
+	printf("exit done! size %d\r\n", lstData.size());
+}
+
+int main()
+{
+	if (!CMyTool::Init())return 1;
+
+	for (int i = 0; i < 10; ++i)
+	{
+		test();
+	}
+
 	// if (CMyTool::IsAdmin())
 	// {
 	// 	if (!CMyTool::Init())return 1;
