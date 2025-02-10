@@ -27,6 +27,8 @@ public:
 	std::vector<char> m_Buffer; //缓冲区
 	ThreadWorker m_Worker; //处理函数
 	MyServer* m_Server; //服务器对象
+	PCLIENT m_Client; //客户端对象
+	WSABUF m_wsabuffer; //WSA缓冲区
 };
 
 template <Myoperator>
@@ -34,6 +36,14 @@ class AcceptOverlapped;
 
 
 typedef AcceptOverlapped<EAccept> ACCEPTOVERLAPPED;
+
+template <Myoperator>
+class RecvOverlapped;
+typedef RecvOverlapped<ERecv> RECVOVERLAPPED;
+
+template <Myoperator>
+class SendOverlapped;
+typedef SendOverlapped<ESend> SENDOVERLAPPED;
 
 class MyClient
 {
@@ -66,6 +76,17 @@ public:
 		return &m_received; //返回接收到的字节数首地址
 	}
 
+	LPWSABUF RecvWSABuffer();
+
+
+	LPWSABUF SendWSABuffer();
+
+
+	DWORD& flags()
+	{
+		return m_flags;
+	}
+
 	sockaddr_in* GetLocalAddr()
 	{
 		return &m_laddr;
@@ -76,11 +97,32 @@ public:
 		return &m_raddr;
 	}
 
+	size_t GetBufferSize()
+	{
+		return m_Buffer.size();
+	}
+
+	int Recv()
+	{
+		int ret = recv(m_sock, m_Buffer.data() + m_used, m_Buffer.size() - m_used, 0);
+		if (ret <= 0)
+		{
+			return -1;
+		}
+		m_used += (size_t)ret;
+		//TODO:解析数据
+		return 0;
+	}
+
 private:
 	SOCKET m_sock;
 	DWORD m_received;
+	DWORD m_flags;
 	std::shared_ptr<ACCEPTOVERLAPPED> m_Overlapped;
+	std::shared_ptr<RECVOVERLAPPED> m_recv; //接收重叠结构
+	std::shared_ptr<SENDOVERLAPPED> m_send; //发送重叠结构
 	std::vector<char> m_Buffer;
+	size_t m_used; //已使用的缓冲区大小
 	sockaddr_in m_laddr;
 	sockaddr_in m_raddr;
 	bool m_isbusy;
@@ -101,9 +143,6 @@ public:
 	}
 
 	int AcceptWorker();
-
-
-	PCLIENT m_Client;
 };
 
 
@@ -114,18 +153,18 @@ public:
 	RecvOverlapped()
 	{
 		m_operator = ERecv;
-		m_Worker = ThreadWorker(this, &RecvOverlapped::RecvWorker);
+		m_Worker = ThreadWorker(this, (FUNCTYPE)&RecvOverlapped::RecvWorker);
 		memset(&m_Overlapped, 0, sizeof(m_Overlapped));
 		m_Buffer.resize(1024 * 256);
 	}
 
 	int RecvWorker()
 	{
-		//TODO:
+		int ret = m_Client->Recv();
+		return ret;
 	}
 };
 
-typedef RecvOverlapped<EAccept> RECVOVERLAPPED;
 
 template <Myoperator>
 class SendOverlapped : public COverlapped, ThreadFuncBase
@@ -136,6 +175,7 @@ public:
 	int SendWorker()
 	{
 		//TODO:
+		return 1;
 	}
 };
 
@@ -156,6 +196,7 @@ public:
 	int ErrorWorker()
 	{
 		//TODO:
+		return -1;
 	}
 };
 
@@ -175,38 +216,8 @@ public:
 		m_addr.sin_port = htons(port);
 	}
 
-	bool StartService()
-	{
-		CreateSocket();
-		if (bind(m_sock, (sockaddr*)&m_addr, sizeof(m_addr)) == -1)
-		{
-			closesocket(m_sock);
-			m_sock = INVALID_SOCKET;
-			return false;
-		}
-		if (listen(m_sock, 3) == -1)
-		{
-			closesocket(m_sock);
-			m_sock = INVALID_SOCKET;
-			return false;
-		}
-		m_hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 4); //创建IOCP
-		if (m_hIOCP == NULL)
-		{
-			closesocket(m_sock);
-			m_sock = INVALID_SOCKET;
-			m_hIOCP = INVALID_HANDLE_VALUE;
-			return false;
-		}
-		CreateIoCompletionPort((HANDLE)m_sock, m_hIOCP, (ULONG_PTR)this, 0); //绑定IOCP
-		m_Pool.Invoke(); //启动线程池
-		m_Pool.DispatchWorker(ThreadWorker(this, (FUNCTYPE)&MyServer::threadIocp)); //启动线程
-		if (!NewAccept())
-		{
-			return false;
-		}
-		return true;
-	}
+	bool StartService();//启动服务
+	
 
 	~MyServer()
 	{
@@ -238,51 +249,7 @@ private:
 	}
 
 
-	int threadIocp()
-	{
-		DWORD transferred = 0;
-		ULONG_PTR Completionkey = 0;
-		OVERLAPPED* lpOverlapped = NULL;
-		if (GetQueuedCompletionStatus(m_hIOCP, &transferred, &Completionkey, &lpOverlapped, INFINITE))
-		{
-			if (transferred > 0 && Completionkey != 0)
-			{
-				COverlapped* p_overlapped = CONTAINING_RECORD(lpOverlapped, COverlapped, m_Overlapped);
-				switch (p_overlapped->m_operator)
-				{
-				case EAccept:
-					{
-						ACCEPTOVERLAPPED* pOver = (ACCEPTOVERLAPPED*)(p_overlapped);
-						m_Pool.DispatchWorker(pOver->m_Worker); //启动线程
-					}
-					break;
-				case ERecv:
-					{
-						RECVOVERLAPPED* pOver = (RECVOVERLAPPED*)(p_overlapped);
-						m_Pool.DispatchWorker(pOver->m_Worker); //启动线程
-					}
-					break;
-				case ESend:
-					{
-						SENDOVERLAPPED* pOver = (SENDOVERLAPPED*)(p_overlapped);
-						m_Pool.DispatchWorker(pOver->m_Worker); //启动线程
-					}
-					break;
-				case EError:
-					{
-						ERROROVERLAPPED* pOver = (ERROROVERLAPPED*)(p_overlapped);
-						m_Pool.DispatchWorker(pOver->m_Worker); //启动线程
-					}
-					break;
-				}
-			}
-			else
-			{
-				return -1;
-			}
-		}
-		return 0;
-	}
+	int threadIocp();
 
 private:
 	ThreadPool m_Pool;
