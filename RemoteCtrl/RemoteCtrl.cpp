@@ -8,6 +8,8 @@
 #include "Command.h"
 #include "conio.h"
 #include "MyQueue.h"
+#include <MSWSock.h>
+#include "MyServer.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -177,14 +179,12 @@ void test()
 	printf("exit done! size %d\r\n", lstData.size());
 }
 
+void iocp();
+
 int main()
 {
 	if (!CMyTool::Init())return 1;
 
-	for (int i = 0; i < 10; ++i)
-	{
-		test();
-	}
 
 	// if (CMyTool::IsAdmin())
 	// {
@@ -213,4 +213,29 @@ int main()
 	// 	}
 	// }
 	return 0;
+}
+
+// class COverlapped
+// {
+// public:
+// 	OVERLAPPED m_Overlapped;
+// 	DWORD m_operator;
+// 	char m_Buffer[4096];
+// 	// SOCKET m_Socket;
+//
+// 	COverlapped()
+// 	{
+// 		m_operator = 0;
+// 		memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+// 		memset(m_Buffer, 0, sizeof(m_Buffer));
+// 		// m_Socket = INVALID_SOCKET;
+// 	}
+// };
+
+void iocp()
+{
+	MyServer server;
+	server.StartService();
+	getchar();
+
 }
