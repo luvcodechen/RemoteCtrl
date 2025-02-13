@@ -111,7 +111,8 @@ public:
 	}
 
 	int Recv();
-
+	LPWSAOVERLAPPED RecvOverlapped();
+	LPWSAOVERLAPPED SendOverlapped();
 	int Send(void* buffer, size_t nSize);
 	int SendData(std::vector<char>& data);
 
@@ -226,26 +227,14 @@ public:
 
 	~MyServer();
 
-	bool NewAccept()
-	{
-		PCLIENT pClient(new MyClient());
-		pClient->SetOverlapped(pClient);
-		m_client.insert(std::pair<SOCKET, PCLIENT>(*pClient, pClient));
-
-		if (FALSE == AcceptEx(m_sock, *pClient, *pClient, 0, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
-		                      *pClient, *pClient)) //接受连接
-		{
-			closesocket(m_sock);
-			m_sock = INVALID_SOCKET;
-			m_hIOCP = INVALID_HANDLE_VALUE;
-			return false;
-		}
-		return true;
-	}
+	bool NewAccept();
+	void BindNewSocket(SOCKET s);
 
 private:
 	void CreateSocket()
 	{
+		WSADATA WSAData;
+		WSAStartup(MAKEWORD(2, 2), &WSAData); //初始化WSA
 		m_sock = WSASocket(PF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED); //创建套接字TCP
 		int opt = 1;
 		setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt)); //设置端口复用

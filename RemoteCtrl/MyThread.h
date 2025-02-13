@@ -16,10 +16,8 @@ public:
 	{
 	}
 
-	ThreadWorker(ThreadFuncBase* pthiz, FUNCTYPE f)
+	ThreadWorker(void* obj, FUNCTYPE f): thiz((ThreadFuncBase*)obj), func(f)
 	{
-		thiz = pthiz;
-		func = f;
 	}
 
 	ThreadWorker(const ThreadWorker& other)
@@ -150,7 +148,9 @@ private:
 				}
 				if (ret < 0)
 				{
+					::ThreadWorker* pWorker = m_worker.load();
 					m_worker.store(NULL);
+					delete pWorker;
 				}
 			}
 			else

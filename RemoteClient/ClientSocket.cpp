@@ -36,6 +36,7 @@ BOOL CClientSocket::InitSocket()
 		      GetErrInfo(WSAGetLastError()).c_str()); //输出错误信息
 		return FALSE;
 	}
+	TRACE("socket init done!\r\n");
 	return TRUE;
 }
 
@@ -51,7 +52,7 @@ bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed
 	if (ret == false)
 	{
 		delete pData;
-		pData= NULL;
+		pData = NULL;
 	}
 	return ret;
 }
@@ -60,7 +61,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
 	PACKET_DATA data = *(PACKET_DATA*)wParam;
 	delete (PACKET_DATA*)wParam; //释放内存
-	wParam = NULL; 
+	wParam = NULL;
 	HWND hWnd = (HWND)lParam; //获取窗口句柄
 	size_t nTemp = data.strData.size();
 	CPacket current((BYTE*)data.strData.c_str(), nTemp);

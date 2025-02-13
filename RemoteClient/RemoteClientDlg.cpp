@@ -123,8 +123,8 @@ BOOL CRemoteClientDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	UpdateData();
-	// m_server_address = 0x7f000001; //
-	m_server_address = 0xC0A8B185; // 192.168.177.133
+	m_server_address = 0x7f000001; //
+	// m_server_address = 0xC0A8B185; // 192.168.177.133
 	m_port = _T("9527"); //
 	UpdateData(false);
 	CClientController::getInstance()->UpdateAdress(m_server_address, atoi((LPCTSTR)m_port));
