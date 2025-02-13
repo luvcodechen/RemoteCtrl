@@ -184,7 +184,7 @@ void iocp();
 int main()
 {
 	if (!CMyTool::Init())return 1;
-
+	iocp();
 
 	// if (CMyTool::IsAdmin())
 	// {

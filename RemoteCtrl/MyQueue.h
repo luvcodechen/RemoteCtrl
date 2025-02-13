@@ -1,6 +1,7 @@
 #pragma once
 #include <list>
 #include "pch.h"
+#include "MyThread.h"
 
 template <class T>
 class MyQueue
@@ -45,7 +46,7 @@ public:
 		}
 	}
 
-	~MyQueue()
+	virtual ~MyQueue()
 	{
 		if (m_lock)return;
 		m_lock = true; //锁定队列
@@ -77,7 +78,7 @@ public:
 		return ret;
 	}
 
-	bool PopFront(T& data)
+	virtual bool PopFront(T& data)
 	{
 		HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); //创建事件
 		IocpParam pParam(EQPop, data, hEvent);
@@ -136,8 +137,7 @@ public:
 		return ret;
 	}
 
-private
-:
+protected:
 	static void threadEntry(void* arg)
 	{
 		MyQueue<T>* pThis = (MyQueue<T>*)arg;
@@ -145,7 +145,7 @@ private
 		_endthread();
 	}
 
-	void DealParam(PPARAM* pParam)
+	virtual void DealParam(PPARAM* pParam)
 	{
 		switch (pParam->nOperator)
 		{
@@ -177,7 +177,7 @@ private
 		}
 	}
 
-	void threadMain()
+	virtual void threadMain()
 	{
 		DWORD dwTransferred = 0;
 		PPARAM* pParam = NULL;
@@ -213,3 +213,133 @@ private
 	HANDLE m_hThread; //线程句柄
 	std::atomic<bool> m_lock; //队列正在析构
 };
+
+
+template <class T>
+class SendQueue : public MyQueue<T>, public ThreadFuncBase
+{
+public:
+	typedef int (ThreadFuncBase::*MYCALLBACK)(T& data);
+
+	SendQueue(ThreadFuncBase* obj, MYCALLBACK callback): MyQueue<T>(), m_base(obj), m_callback(callback)
+	{
+		m_thread.Start();
+		m_thread.UpdateWorker(::ThreadWorker(this, (FUNCTYPE)&SendQueue<T>::threadTick)); //设置工作函数
+	}
+
+	virtual ~SendQueue()
+	{
+		m_thread.Stop();
+		m_base = NULL;
+		m_callback = NULL;
+	}
+
+	// virtual bool PopFront(T& data) = delete;
+
+protected:
+	virtual bool PopFront(T& data)
+	{
+		return false;
+	}
+
+	bool PopFront()
+	{
+		typename MyQueue<T>::IocpParam* pParam = new typename MyQueue<T>::IocpParam(MyQueue<T>::EQPop, T());
+		if (MyQueue<T>::m_lock == true)
+		{
+			delete pParam;
+			return false;
+		}
+		bool ret = PostQueuedCompletionStatus(MyQueue<T>::m_hCompletionPort, sizeof(*pParam), (ULONG_PTR)&pParam, NULL);
+		//投递消息
+		if (ret == false)
+		{
+			delete pParam;
+			return false;
+		}
+		return ret;
+	}
+
+	int threadTick()
+	{
+		if (WaitForSingleObject(MyQueue<T>::m_hThread, 0) != WAIT_TIMEOUT)
+			return 0;
+		if (this->m_listData.size() > 0)
+		{
+			PopFront();
+		}
+		// Sleep(1);
+		return 0;
+	}
+
+	virtual void DealParam(typename MyQueue<T>::PPARAM* pParam)
+	{
+		switch (pParam->nOperator)
+		{
+		case MyQueue<T>::EQPush:
+			this->m_listData.push_back(pParam->Data);
+			delete pParam;
+			break;
+		case MyQueue<T>::EQPop:
+			if (this->m_listData.size() > 0)
+			{
+				pParam->Data = this->m_listData.front();
+				// if ((m_base->*m_callback)(pParam->Data) == 0)
+				MyQueue<T>::m_listData.pop_front();
+			}
+			delete pParam;
+			break;
+		case MyQueue<T>::EQSize:
+			pParam->nOperator = this->m_listData.size();
+			if (pParam->hEvent != NULL)
+				SetEvent(pParam->hEvent);
+			break;
+		case MyQueue<T>::EQClear:
+			this->m_listData.clear();
+			delete pParam;
+			break;
+		default:
+			OutputDebugStringA("unknown operator!\r\n");
+			break;
+		}
+	}
+
+	virtual void threadMain()
+	{
+		DWORD dwTransferred = 0;
+		typename MyQueue<T>::PPARAM* pParam = NULL;
+		ULONG_PTR CompletionKey = 0;
+		OVERLAPPED* pOverlapped = NULL;
+		while (GetQueuedCompletionStatus(this->m_hCompletionPort, &dwTransferred, &CompletionKey, &pOverlapped,
+		                                 INFINITE))
+		{
+			if (CompletionKey == 0 && dwTransferred == NULL)
+			{
+				printf("exit threadQueueEntry\r\n");
+				break;
+			}
+			pParam = (typename MyQueue<T>::PPARAM*)CompletionKey;
+			DealParam(pParam);
+		}
+		while (GetQueuedCompletionStatus(this->m_hCompletionPort, &dwTransferred, &CompletionKey, &pOverlapped, 0))
+		{
+			if (CompletionKey == 0 && dwTransferred == NULL)
+			{
+				printf("exit threadQueueEntry\r\n");
+				continue;
+			}
+			pParam = (typename MyQueue<T>::PPARAM*)CompletionKey;
+			DealParam(pParam);
+		}
+		HANDLE hTemp = this->m_hCompletionPort;
+		this->m_hCompletionPort = NULL;
+		CloseHandle(hTemp); //关闭完成端口
+	}
+
+private:
+	ThreadFuncBase* m_base;
+	MYCALLBACK m_callback;
+	MyThread m_thread;
+};
+
+typedef SendQueue<std::vector<char>>::MYCALLBACK SENDCALLBACK;

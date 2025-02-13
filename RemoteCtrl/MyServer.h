@@ -27,8 +27,12 @@ public:
 	std::vector<char> m_Buffer; //缓冲区
 	ThreadWorker m_Worker; //处理函数
 	MyServer* m_Server; //服务器对象
-	PCLIENT m_Client; //客户端对象
+	MyClient* m_Client; //客户端对象
 	WSABUF m_wsabuffer; //WSA缓冲区
+	virtual ~COverlapped()
+	{
+		m_Buffer.clear();
+	}
 };
 
 template <Myoperator>
@@ -45,14 +49,18 @@ template <Myoperator>
 class SendOverlapped;
 typedef SendOverlapped<ESend> SENDOVERLAPPED;
 
-class MyClient
+class MyClient : public ThreadFuncBase
 {
 public:
 	MyClient();
 
 	~MyClient()
 	{
+		m_Buffer.clear(); //
 		closesocket(m_sock);
+		m_recv.reset(); //释放接收重叠结构
+		m_send.reset(); //释放发送重叠结构
+		m_Overlapped.reset(); //释放接受重叠结构
 	}
 
 	void SetOverlapped(PCLIENT& ptr);
@@ -102,17 +110,10 @@ public:
 		return m_Buffer.size();
 	}
 
-	int Recv()
-	{
-		int ret = recv(m_sock, m_Buffer.data() + m_used, m_Buffer.size() - m_used, 0);
-		if (ret <= 0)
-		{
-			return -1;
-		}
-		m_used += (size_t)ret;
-		//TODO:解析数据
-		return 0;
-	}
+	int Recv();
+
+	int Send(void* buffer, size_t nSize);
+	int SendData(std::vector<char>& data);
 
 private:
 	SOCKET m_sock;
@@ -126,6 +127,7 @@ private:
 	sockaddr_in m_laddr;
 	sockaddr_in m_raddr;
 	bool m_isbusy;
+	SendQueue<std::vector<char>> m_vecSend; //发送数据队列
 };
 
 
@@ -175,6 +177,9 @@ public:
 	int SendWorker()
 	{
 		//TODO:
+		/*
+		 * 1 send可能不会立即完成
+		 */
 		return 1;
 	}
 };
@@ -216,18 +221,16 @@ public:
 		m_addr.sin_port = htons(port);
 	}
 
-	bool StartService();//启动服务
-	
+	bool StartService(); //启动服务
 
-	~MyServer()
-	{
-	}
+
+	~MyServer();
 
 	bool NewAccept()
 	{
 		PCLIENT pClient(new MyClient());
 		pClient->SetOverlapped(pClient);
-		// m_client.insert(std::pair<SOCKET, PCLIENT>(*pClient, pClient));
+		m_client.insert(std::pair<SOCKET, PCLIENT>(*pClient, pClient));
 
 		if (FALSE == AcceptEx(m_sock, *pClient, *pClient, 0, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
 		                      *pClient, *pClient)) //接受连接
@@ -256,5 +259,5 @@ private:
 	HANDLE m_hIOCP;
 	SOCKET m_sock;
 	sockaddr_in m_addr;
-	std::map<SOCKET, std::shared_ptr<MyClient*>> m_client;
+	std::map<SOCKET, std::shared_ptr<MyClient>> m_client;
 };

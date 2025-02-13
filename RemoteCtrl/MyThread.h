@@ -62,6 +62,7 @@ public:
 	MyThread()
 	{
 		m_hThread = NULL;
+		m_bStatus = false;
 	}
 
 	~MyThread()
@@ -93,29 +94,37 @@ public:
 		if (m_bStatus == false)
 			return true;
 		m_bStatus = false;
-		bool ret = WaitForSingleObject(m_hThread, INFINITE) == WAIT_OBJECT_0; //等待线程结束
+		DWORD ret = WaitForSingleObject(m_hThread, 1000); //等待线程结束
+		if (ret == WAIT_TIMEOUT)
+		{
+			TerminateThread(m_hThread, -1); //强制结束线程	
+		}
 		UpdateWorker();
-		return ret;
+		return ret == WAIT_OBJECT_0;
 	}
 
 	void UpdateWorker(const ::ThreadWorker& worker = ::ThreadWorker())
 	{
-		if (!worker.IsValid())
-		{
-			m_worker.store(NULL);
-			return;
-		}
-		if (m_worker.load() != NULL)
+		if (m_worker.load() != NULL && m_worker.load() != &worker)
 		{
 			::ThreadWorker* pWorker = m_worker.load();
 			m_worker.store(NULL);
 			delete pWorker;
+		}
+		if (m_worker.load() == &worker)
+			return;
+		if (!worker.IsValid())
+		{
+			m_worker.store(NULL);
+			return;
 		}
 		m_worker.store(new ::ThreadWorker(worker)); //设置工作函数
 	}
 
 	bool IsIdle() //true表示空闲，false表示正在工作
 	{
+		if (m_worker.load() == NULL)
+			return true;
 		return !m_worker.load()->IsValid();
 	}
 
@@ -124,6 +133,11 @@ private:
 	{
 		while (m_bStatus)
 		{
+			if (m_worker.load() == NULL)
+			{
+				Sleep(1);
+				continue;
+			}
 			::ThreadWorker worker = *m_worker.load();
 			if (worker.IsValid())
 			{
@@ -179,6 +193,11 @@ public:
 	~ThreadPool()
 	{
 		Stop();
+		for (size_t i = 0; i < m_Threads.size(); i++)
+		{
+			delete m_Threads[i];
+			m_Threads[i] = NULL;
+		}
 		m_Threads.clear();
 	}
 
