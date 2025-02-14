@@ -284,7 +284,7 @@ protected:
 			if (this->m_listData.size() > 0)
 			{
 				pParam->Data = this->m_listData.front();
-				// if ((m_base->*m_callback)(pParam->Data) == 0)
+				if ((m_base->*m_callback)(pParam->Data) == 0)
 				MyQueue<T>::m_listData.pop_front();
 			}
 			delete pParam;

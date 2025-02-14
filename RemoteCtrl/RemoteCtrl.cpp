@@ -180,11 +180,59 @@ void test()
 }
 
 void iocp();
+void udp_server();
+void udp_client(bool ishost = true);
 
-int main()
+int main(int argc, char* argv[])
 {
 	if (!CMyTool::Init())return 1;
-	iocp();
+
+	if (argc == 1)//主机
+	{
+		char wstrDir[MAX_PATH] = {0};
+		GetCurrentDirectoryA(MAX_PATH, wstrDir);
+		STARTUPINFOA si;
+		PROCESS_INFORMATION pi;
+		memset(&si, 0, sizeof(si));
+		memset(&pi, 0, sizeof(pi));
+		
+		string strCmd = argv[0];
+		strCmd += " 1";
+		BOOL bRET = CreateProcessA(NULL, (LPSTR)strCmd.c_str(),NULL,NULL,FALSE, 0,NULL, wstrDir, &si,
+		                           &pi);
+		//创建一个新的进程
+		if (bRET) //创建成功
+		{
+			CloseHandle(pi.hProcess); //关闭进程句柄
+			CloseHandle(pi.hThread); //关闭线程句柄
+			TRACE("进程id %d \r\n", pi.dwProcessId);
+			TRACE("线程id %d \r\n", pi.dwThreadId);
+			strCmd += "2";
+			bRET = CreateProcessA(NULL, (LPSTR)strCmd.c_str(), NULL, NULL, FALSE, 0, NULL, wstrDir,
+			                      &si,
+			                      &pi);
+			//创建一个新的进程
+			if (bRET) //创建成功
+			{
+				CloseHandle(pi.hProcess); //关闭进程句柄
+				CloseHandle(pi.hThread); //关闭线程句柄
+				TRACE("进程id %d \r\n", pi.dwProcessId);
+				TRACE("线程id %d \r\n", pi.dwThreadId);
+				udp_server();//服务器代码
+			}
+		}
+	}
+	else if (argc == 2)//主客户端
+	{
+		udp_client();
+	}
+	else//从客户端
+	{
+		udp_client(false);
+	}
+
+	// iocp();
+
 
 	// if (CMyTool::IsAdmin())
 	// {
@@ -237,5 +285,21 @@ void iocp()
 	MyServer server;
 	server.StartService();
 	getchar();
+}
 
+void udp_server()
+{
+	printf("%s(%d):%s\r\n",__FILE__,__LINE__, __FUNCTION__);
+}
+
+void udp_client(bool ishost)
+{
+	if (ishost)
+	{
+		printf("%s(%d):%s\r\n",__FILE__,__LINE__, __FUNCTION__);
+	}
+	else
+	{
+		printf("%s(%d):%s\r\n",__FILE__,__LINE__, __FUNCTION__);
+	}
 }
