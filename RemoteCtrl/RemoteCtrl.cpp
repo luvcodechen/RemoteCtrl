@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 
 	if (argc == 1)//主机
 	{
-		char wstrDir[MAX_PATH] = {0};
+		char wstrDir[MAX_PATH];
 		GetCurrentDirectoryA(MAX_PATH, wstrDir);
 		STARTUPINFOA si;
 		PROCESS_INFORMATION pi;
@@ -207,7 +207,7 @@ int main(int argc, char* argv[])
 			CloseHandle(pi.hThread); //关闭线程句柄
 			TRACE("进程id %d \r\n", pi.dwProcessId);
 			TRACE("线程id %d \r\n", pi.dwThreadId);
-			strCmd += "2";
+			strCmd += " 2";
 			bRET = CreateProcessA(NULL, (LPSTR)strCmd.c_str(), NULL, NULL, FALSE, 0, NULL, wstrDir,
 			                      &si,
 			                      &pi);
